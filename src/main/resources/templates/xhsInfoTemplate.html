@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>${infoTitle}</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: #fff;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 600px;
+            height: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px 32px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .title {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            gap: 4px;
+        }
+        .title-char {
+            border: 2px dashed #42A5F5;
+            font-size: 2rem;
+            font-weight: bold;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 8px;
+            color: #1976d2;
+            letter-spacing: 0;
+            transition: all 0.3s ease;
+        }
+        .title-char:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3);
+        }
+        .bullet {
+            color: #42A5F5;
+            font-size: 1.2rem;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        .desc {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: flex-start;
+            background: linear-gradient(135deg, #f3f8ff, #e8f4fd);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #42A5F5;
+            color: #333;
+        }
+        .sections {
+            flex: 1;
+            margin-bottom: 20px;
+        }
+        .single-point-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 25px;
+            border: 2px solid rgba(66, 165, 245, 0.1);
+            box-shadow: 0 4px 20px rgba(66, 165, 245, 0.1);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .point-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(66, 165, 245, 0.2);
+        }
+        .point-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #42A5F5, #1976d2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.4rem;
+            margin-right: 20px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3);
+        }
+        .point-title {
+            flex: 1;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1976d2;
+            line-height: 1.4;
+        }
+        .point-description {
+            flex: 1;
+            font-size: 1rem;
+            line-height: 1.8;
+            color: #333;
+            text-align: justify;
+            padding: 10px 0;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .ending {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #f3f8ff, #e8f4fd);
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #42A5F5;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="title">
+        ${titleChars}
+    </div>
+    <div class="desc"><span class="bullet">●</span>${keyPointDesc}</div>
+    <div class="sections">
+        ${dynamicSections}
+    </div>
+    <div class="ending"><span class="bullet">●</span>${endingText}</div>
+</div>
+</body>
+</html>

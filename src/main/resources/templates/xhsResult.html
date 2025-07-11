@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成结果 - 小红书笔记生成器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 80px; /* 为固定导航栏留出空间 */
+            margin: 0;
+            overflow-x: hidden; /* 防止水平滚动条 */
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            width: 100%;
+            min-height: 400px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b9d, #c44569);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 157, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(108, 117, 125, 0.3);
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #ff6b9d;
+        }
+        
+        .html-preview {
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 0;
+            margin: 15px 0;
+            background: white;
+            overflow: hidden;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .html-preview > div {
+            width: 600px !important;
+            height: 800px !important;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        /* 针对封面图的特殊样式 - 保持原始尺寸 */
+        #coverPreview {
+            width: 600px;
+            height: 800px;
+        }
+
+        #coverPreview .html-preview > div {
+            transform: scale(1);
+        }
+
+        /* 针对内容图的特殊样式 - 保持原始尺寸 */
+        .html-preview[id^="contentPreview"] {
+            width: 600px;
+            height: 800px;
+        }
+
+        .html-preview[id^="contentPreview"] > div {
+            transform: scale(1);
+        }
+        
+        .download-section {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .info-section {
+            background: #f1f8e9;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .key-points {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .key-points li {
+            background: #fff3e0;
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ff6b9d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            #coverPreview .html-preview > div {
+                transform: scale(0.6);
+            }
+
+            .html-preview[id^="contentPreview"] > div {
+                transform: scale(0.5);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 15px;
+                margin: 10px 0;
+            }
+
+            .html-preview {
+                padding: 10px;
+                max-height: 400px;
+            }
+
+            .download-section .d-grid {
+                gap: 10px;
+            }
+
+            #coverPreview .html-preview > div {
+                transform: scale(0.45);
+            }
+
+            .html-preview[id^="contentPreview"] > div {
+                transform: scale(0.35);
+            }
+        }
+
+        /* 确保容器充满宽度 */
+        .container-fluid {
+            max-width: 100%;
+            width: 100%;
+            margin: 0;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        /* 修复行间距 */
+        .row {
+            margin-left: -5px;
+            margin-right: -5px;
+            width: 100%;
+        }
+
+        .row > * {
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            height: 70px;
+        }
+
+        .navbar-brand:hover {
+            color: #c44569 !important;
+        }
+
+        .nav-link:hover {
+            color: #ff6b9d !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(15px); box-shadow: 0 2px 20px rgba(0,0,0,0.1); z-index: 1000;">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="/xhs/generate" style="color: #ff6b9d; font-size: 1.3rem;">
+                <i class="fas fa-heart me-2"></i>小红书笔记生成器
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link px-3" href="/xhs/generate" style="color: #666; font-weight: 500;">
+                        <i class="fas fa-plus me-1"></i>新建笔记
+                    </a>
+                    <a class="nav-link px-3" href="/" style="color: #666; font-weight: 500;">
+                        <i class="fas fa-home me-1"></i>首页
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-2">
+        <div class="row g-2">
+            <!-- 左侧信息面板 -->
+            <div class="col-xl-4 col-lg-4 col-md-12">
+                <div class="main-container h-100">
+                    <h2 class="text-center mb-4">
+                        <i class="fas fa-check-circle text-success me-2"></i>笔记生成完成
+                    </h2>
+
+                    <!-- 基本信息 -->
+                    <div class="info-section" th:if="${noteData}">
+                        <h4><i class="fas fa-info-circle me-2"></i>笔记信息</h4>
+                        <p><strong>标题：</strong><span th:text="${noteData.title}">标题</span></p>
+                        <p><strong>任务ID：</strong><span th:text="${noteData.taskId}">任务ID</span></p>
+                        <p><strong>图片数量：</strong><span th:text="${#lists.size(noteData.contentImageHtmls)}">0</span> 张</p>
+                        <p><strong>生成时间：</strong><span id="currentTime"></span></p>
+
+                        <!-- 核心要点 -->
+                        <div th:if="${noteData.keyPoints != null and not #lists.isEmpty(noteData.keyPoints)}">
+                            <h5><i class="fas fa-list me-2"></i>核心要点</h5>
+                            <ul class="key-points">
+                                <li th:each="point : ${noteData.keyPoints}" th:text="${point}">要点</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 下载操作区域 -->
+                    <div class="download-section">
+                        <h4><i class="fas fa-download me-2"></i>下载选项</h4>
+                        <p class="text-muted mb-3">选择您需要下载的内容</p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" onclick="downloadCoverImage()">
+                                <i class="fas fa-image me-2"></i>下载封面图
+                            </button>
+                            <button class="btn btn-primary" onclick="downloadAllContentImages()">
+                                <i class="fas fa-images me-2"></i>下载所有内容图
+                            </button>
+                            <button class="btn btn-secondary" onclick="downloadAllAsZip()">
+                                <i class="fas fa-file-archive me-2"></i>打包下载
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Markdown内容展示 -->
+                    <div class="result-card" th:if="${noteData != null and noteData.markdownContent != null}">
+                        <h4><i class="fas fa-code me-2"></i>Markdown内容</h4>
+                        <p class="text-muted mb-3">可直接复制以下Markdown文本</p>
+                        <div class="markdown-content">
+                            <textarea class="form-control" rows="10" readonly th:text="${noteData.markdownContent}"
+                                      style="font-family: 'Courier New', monospace; font-size: 0.9rem; background: #f8f9fa; border: 1px solid #dee2e6; resize: vertical;"></textarea>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-outline-primary" onclick="copyMarkdownContent()">
+                                    <i class="fas fa-copy me-2"></i>复制Markdown
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="text-center mt-4">
+                        <a href="/xhs/generate" class="btn btn-primary me-2">
+                            <i class="fas fa-plus me-2"></i>生成新笔记
+                        </a>
+                        <button class="btn btn-secondary" onclick="window.history.back()">
+                            <i class="fas fa-arrow-left me-2"></i>返回上页
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧预览面板 -->
+            <div class="col-xl-8 col-lg-8 col-md-12">
+                <div class="main-container h-100">
+
+                    <h3 class="mb-4"><i class="fas fa-eye me-2"></i>预览效果</h3>
+
+                    <!-- 封面图预览 -->
+                    <div class="result-card" th:if="${noteData != null and noteData.coverImageHtml != null}">
+                        <h4><i class="fas fa-image me-2"></i>封面图预览</h4>
+                        <div class="html-preview" id="coverPreview">
+                            <div th:utext="${noteData.coverImageHtml}"></div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-success" onclick="downloadSingleImage('coverPreview', '封面图')">
+                                <i class="fas fa-download me-2"></i>下载封面图
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 内容图预览 -->
+                    <div class="result-card" th:if="${noteData != null and noteData.contentImageHtmls != null and not #lists.isEmpty(noteData.contentImageHtmls)}">
+                        <h4><i class="fas fa-images me-2"></i>内容图预览</h4>
+                        <div th:each="html, iterStat : ${noteData.contentImageHtmls}">
+                            <h5 th:text="'内容图 ' + ${iterStat.count}">内容图</h5>
+                            <div class="html-preview" th:id="'contentPreview' + ${iterStat.count}">
+                                <div th:utext="${html}"></div>
+                            </div>
+                            <div class="text-center mt-3 mb-4">
+                                <button class="btn btn-primary" th:onclick="'downloadSingleImage(\'contentPreview' + ${iterStat.count} + '\', \'内容图' + ${iterStat.count} + '\')'">
+                                    <i class="fas fa-download me-2"></i>下载此图
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h5>正在生成图片...</h5>
+            <p class="text-muted">请稍候，这可能需要几秒钟</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 设置当前时间
+        document.getElementById('currentTime').textContent = new Date().toLocaleString('zh-CN');
+        
+        // 下载单个图片
+        function downloadSingleImage(elementId, filename) {
+            showLoading();
+
+            const element = document.getElementById(elementId);
+            if (!element) {
+                hideLoading();
+                alert('找不到要下载的内容');
+                return;
+            }
+
+            // 创建一个克隆元素，用于处理图片
+            const clonedElement = element.cloneNode(true);
+            document.body.appendChild(clonedElement);
+            clonedElement.style.position = 'absolute';
+            clonedElement.style.left = '-9999px';
+            clonedElement.style.top = '-9999px';
+
+            // 处理所有图片，转换为base64
+            const images = clonedElement.querySelectorAll('img');
+            const imagePromises = Array.from(images).map(img => {
+                return new Promise((resolve) => {
+                    if (img.src.startsWith('data:')) {
+                        // 已经是base64，直接返回
+                        resolve();
+                        return;
+                    }
+
+                    // 创建canvas来转换图片
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const tempImg = new Image();
+
+                    tempImg.crossOrigin = 'anonymous';
+                    tempImg.onload = function() {
+                        canvas.width = this.naturalWidth;
+                        canvas.height = this.naturalHeight;
+                        ctx.drawImage(this, 0, 0);
+
+                        try {
+                            const dataURL = canvas.toDataURL('image/png');
+                            img.src = dataURL;
+                            resolve();
+                        } catch (e) {
+                            console.warn('图片转换失败:', img.src, e);
+                            // 使用占位图片
+                            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgwIiBoZWlnaHQ9IjM2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgwIiBoZWlnaHQ9IjM2MCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjI0MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4=';
+                            resolve();
+                        }
+                    };
+
+                    tempImg.onerror = function() {
+                        console.warn('图片加载失败:', img.src);
+                        // 使用占位图片
+                        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgwIiBoZWlnaHQ9IjM2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgwIiBoZWlnaHQ9IjM2MCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjI0MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4=';
+                        resolve();
+                    };
+
+                    // 设置超时
+                    setTimeout(() => {
+                        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgwIiBoZWlnaHQ9IjM2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDgwIiBoZWlnaHQ9IjM2MCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjI0MCIgeT0iMTgwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuWbvueJh+WKoOi9veWksei0pTwvdGV4dD48L3N2Zz4=';
+                        resolve();
+                    }, 3000);
+
+                    tempImg.src = img.src;
+                });
+            });
+
+            Promise.all(imagePromises).then(() => {
+                // 等待一下确保图片渲染完成
+                setTimeout(() => {
+                    html2canvas(clonedElement, {
+                        useCORS: false, // 关闭CORS，因为我们已经转换为base64
+                        allowTaint: false,
+                        scale: 2,
+                        backgroundColor: '#ffffff',
+                        logging: false,
+                        width: clonedElement.offsetWidth,
+                        height: clonedElement.offsetHeight
+                    }).then(canvas => {
+                        // 清理克隆元素
+                        document.body.removeChild(clonedElement);
+                        hideLoading();
+
+                        // 创建下载链接
+                        const link = document.createElement('a');
+                        link.download = filename + '_' + new Date().getTime() + '.png';
+                        link.href = canvas.toDataURL('image/png');
+
+                        // 触发下载
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                    }).catch(error => {
+                        document.body.removeChild(clonedElement);
+                        hideLoading();
+                        console.error('生成图片失败:', error);
+                        alert('生成图片失败，请重试');
+                    });
+                }, 500);
+            });
+        }
+        
+        // 下载封面图
+        function downloadCoverImage() {
+            downloadSingleImage('coverPreview', '小红书封面图');
+        }
+        
+        // 下载所有内容图
+        function downloadAllContentImages() {
+            const contentPreviews = document.querySelectorAll('[id^="contentPreview"]');
+            if (contentPreviews.length === 0) {
+                alert('没有找到内容图');
+                return;
+            }
+            
+            let downloadCount = 0;
+            const totalCount = contentPreviews.length;
+            
+            showLoading();
+            
+            contentPreviews.forEach((element, index) => {
+                setTimeout(() => {
+                    html2canvas(element, {
+                        useCORS: true,
+                        allowTaint: true,
+                        scale: 2,
+                        backgroundColor: '#ffffff'
+                    }).then(canvas => {
+                        const link = document.createElement('a');
+                        link.download = `小红书内容图${index + 1}_${new Date().getTime()}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        downloadCount++;
+                        if (downloadCount === totalCount) {
+                            hideLoading();
+                        }
+                    }).catch(error => {
+                        console.error('生成图片失败:', error);
+                        downloadCount++;
+                        if (downloadCount === totalCount) {
+                            hideLoading();
+                        }
+                    });
+                }, index * 1000); // 间隔1秒下载，避免浏览器阻止
+            });
+        }
+        
+        // 打包下载所有图片
+        function downloadAllAsZip() {
+            // 获取当前页面的taskId
+            const pathParts = window.location.pathname.split('/');
+            const taskId = pathParts[pathParts.length - 1];
+
+            if (!taskId) {
+                alert('无法获取任务ID');
+                return;
+            }
+
+            showLoading();
+
+            // 创建下载链接
+            const downloadUrl = '/xhs/download/' + taskId;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = '小红书笔记包_' + taskId + '.zip';
+
+            // 监听下载完成
+            link.addEventListener('click', function() {
+                setTimeout(() => {
+                    hideLoading();
+                }, 2000);
+            });
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 显示加载遮罩
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        
+        // 隐藏加载遮罩
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // 复制Markdown内容
+        function copyMarkdownContent() {
+            const textarea = document.querySelector('.markdown-content textarea');
+            if (textarea) {
+                textarea.select();
+                textarea.setSelectionRange(0, 99999); // 对于移动设备
+
+                try {
+                    document.execCommand('copy');
+                    // 显示成功提示
+                    const btn = event.target.closest('button');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>已复制';
+                    btn.classList.remove('btn-outline-primary');
+                    btn.classList.add('btn-success');
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-primary');
+                    }, 2000);
+                } catch (err) {
+                    console.error('复制失败:', err);
+                    alert('复制失败，请手动选择文本复制');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

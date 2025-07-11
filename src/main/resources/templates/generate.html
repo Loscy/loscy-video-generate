@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分步生成短视频 - AI短视频生成器</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin: 20px auto;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(108, 117, 125, 0.3);
+        }
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+        }
+        .progress-bar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 5px;
+        }
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+        .scene-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+        }
+        .scene-editor {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e9ecef;
+        }
+        .scene-editor:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .video-preview {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .image-preview {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin: 10px 0;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            color: #6c757d;
+            flex: 1;
+            justify-content: center;
+        }
+        .step.active {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .step.completed {
+            color: #28a745;
+        }
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .step.active .step-number {
+            background: #667eea;
+            color: white;
+        }
+        .step.completed .step-number {
+            background: #28a745;
+            color: white;
+        }
+        .step-content {
+            display: none;
+        }
+        .step-content.active {
+            display: block;
+        }
+        .btn-group-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .image-item {
+            text-align: center;
+        }
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .auth-container h3 {
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+        .auth-container .form-control {
+            margin-bottom: 20px;
+        }
+        .auth-container .btn {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .main-content {
+            display: none;
+        }
+        .main-content.authenticated {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- 密钥验证界面 -->
+    <div id="authOverlay" class="auth-overlay">
+        <div class="auth-container">
+            <h3><i class="fas fa-lock me-2"></i>访问验证</h3>
+            <p class="text-muted mb-4">请输入访问密钥以继续使用AI短视频生成器</p>
+            <div class="mb-3">
+                <input type="password" class="form-control" id="accessKey" 
+                       placeholder="请输入访问密钥" onkeypress="handleKeyPress(event)">
+            </div>
+            <button type="button" class="btn btn-primary" onclick="verifyAccess()">
+                <i class="fas fa-unlock me-2"></i>验证并进入
+            </button>
+            <div id="authError" class="alert alert-danger mt-3" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="authErrorText"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div id="mainContent" class="main-content">
+        <!-- 导航栏 -->
+        <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(0,0,0,0.2); backdrop-filter: blur(10px);">
+            <div class="container">
+                <a class="navbar-brand" href="/video/">
+                    <i class="fas fa-video me-2"></i>AI短视频生成器
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/video/">
+                        <i class="fas fa-home me-1"></i>首页
+                    </a>
+                    <a class="nav-link" href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i>退出
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="main-container">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-magic me-2"></i>分步生成短视频
+                </h2>
+
+            <!-- 步骤指示器 -->
+            <div class="step-indicator">
+                <div class="step active" id="step1">
+                    <div class="step-number">1</div>
+                    <span>输入文本</span>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-number">2</div>
+                    <span>生成脚本</span>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-number">3</div>
+                    <span>生成图片</span>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-number">4</div>
+                    <span>生成视频</span>
+                </div>
+            </div>
+
+            <!-- 步骤1: 输入文本 -->
+            <div class="step-content active" id="step1-content">
+                <div class="mb-3">
+                    <label for="inputText" class="form-label">
+                        <i class="fas fa-edit me-2"></i>请输入您想要制作成视频的文本内容
+                    </label>
+                    <textarea class="form-control" id="inputText" rows="6" 
+                              placeholder="例如：人工智能正在改变我们的世界。从智能手机到自动驾驶汽车，AI技术已经融入我们生活的每一个角落。未来，AI将在教育、医疗、金融等各个领域发挥重要作用，为人类创造更美好的生活。"></textarea>
+                </div>
+                
+                <!-- 脚本生成进度 -->
+                <div id="scriptProgress" class="status-card" style="display: none;">
+                    <h5><i class="fas fa-file-alt me-2"></i>脚本生成进度</h5>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" id="scriptProgressBar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p id="scriptStatusMessage">正在生成脚本...</p>
+                </div>
+                
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="generateScript()" id="generateScriptBtn">
+                        <i class="fas fa-play me-2"></i>生成脚本
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤2: 脚本编辑 -->
+            <div class="step-content" id="step2-content">
+                <div class="status-card">
+                    <h5><i class="fas fa-file-alt me-2"></i>编辑脚本</h5>
+                    <div id="scriptEditor"></div>
+                </div>
+                
+                <!-- 图片生成进度 -->
+                <div id="imageProgress" class="status-card" style="display: none;">
+                    <h5><i class="fas fa-images me-2"></i>图片生成进度</h5>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" id="imageProgressBar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p id="imageStatusMessage">正在生成图片...</p>
+                </div>
+                
+                <div class="btn-group-actions">
+                    <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left me-2"></i>上一步
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="generateImages()" id="generateImagesBtn">
+                        <i class="fas fa-images me-2"></i>生成图片
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤3: 图片预览 -->
+            <div class="step-content" id="step3-content">
+                <div class="status-card">
+                    <h5><i class="fas fa-images me-2"></i>生成的图片</h5>
+                    <div id="imagePreview" class="image-grid"></div>
+                </div>
+                <div class="btn-group-actions">
+                    <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left me-2"></i>上一步
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="generateVideo()">
+                        <i class="fas fa-video me-2"></i>生成视频
+                    </button>
+                </div>
+            </div>
+
+            <!-- 步骤4: 视频生成 -->
+            <div class="step-content" id="step4-content">
+                <div class="status-card">
+                    <h5><i class="fas fa-video me-2"></i>视频生成进度</h5>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <p id="statusMessage">正在生成视频...</p>
+                </div>
+                
+                <!-- 视频结果 -->
+                <div id="videoResult" style="display: none;">
+                    <div class="status-card">
+                        <h5><i class="fas fa-video me-2"></i>生成的视频</h5>
+                        <div class="text-center">
+                            <video id="videoPlayer" class="video-preview" controls>
+                                您的浏览器不支持视频播放。
+                            </video>
+                            <div class="mt-3">
+                                <a id="downloadLink" href="#" class="btn btn-success" download>
+                                    <i class="fas fa-download me-2"></i>下载视频
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group-actions">
+                    <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                        <i class="fas fa-arrow-left me-2"></i>上一步
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="restart()">
+                        <i class="fas fa-redo me-2"></i>重新开始
+                    </button>
+                </div>
+            </div>
+
+            <!-- 错误信息 -->
+            <div id="errorMessage" class="alert alert-danger" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="errorText"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 验证相关变量
+        let isAuthenticated = false;
+        let currentToken = null;
+        
+        // 页面加载时检查验证状态
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+        });
+        
+        // 检查验证状态
+        function checkAuthStatus() {
+            const authStatus = localStorage.getItem('videoGeneratorAuth');
+            const savedToken = localStorage.getItem('videoGeneratorToken');
+            if (authStatus === 'true' && savedToken) {
+                isAuthenticated = true;
+                currentToken = savedToken;
+                showMainContent();
+            } else {
+                showAuthOverlay();
+            }
+        }
+        
+        // 显示验证界面
+        function showAuthOverlay() {
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('mainContent').classList.remove('authenticated');
+            document.getElementById('accessKey').focus();
+        }
+        
+        // 显示主内容
+        function showMainContent() {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('mainContent').classList.add('authenticated');
+        }
+        
+        // 验证访问密钥
+        function verifyAccess() {
+            const accessKey = document.getElementById('accessKey').value.trim();
+            
+            if (!accessKey) {
+                showAuthError('请输入访问密钥');
+                return;
+            }
+            
+            // 调用后端验证接口
+            fetch('/video/verify-access', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'accessKey=' + encodeURIComponent(accessKey)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    isAuthenticated = true;
+                    currentToken = data.token;
+                    localStorage.setItem('videoGeneratorAuth', 'true');
+                    localStorage.setItem('videoGeneratorToken', data.token);
+                    showMainContent();
+                    hideAuthError();
+                } else {
+                    showAuthError(data.message || '访问密钥错误，请重新输入');
+                    document.getElementById('accessKey').value = '';
+                    document.getElementById('accessKey').focus();
+                }
+            })
+            .catch(error => {
+                showAuthError('验证请求失败: ' + error.message);
+                document.getElementById('accessKey').value = '';
+                document.getElementById('accessKey').focus();
+            });
+        }
+        
+        // 处理回车键
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                verifyAccess();
+            }
+        }
+        
+        // 显示验证错误
+        function showAuthError(message) {
+            // 如果在验证界面，显示验证错误
+            if (document.getElementById('authError')) {
+                document.getElementById('authError').style.display = 'block';
+                document.getElementById('authErrorText').textContent = message;
+            } else {
+                // 如果在主界面，显示主界面错误
+                showError(message);
+            }
+        }
+        
+        // 隐藏验证错误
+        function hideAuthError() {
+            document.getElementById('authError').style.display = 'none';
+        }
+        
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出吗？')) {
+                isAuthenticated = false;
+                currentToken = null;
+                localStorage.removeItem('videoGeneratorAuth');
+                localStorage.removeItem('videoGeneratorToken');
+                showAuthOverlay();
+                // 重置所有状态
+                restart();
+            }
+        }
+        
+        // 主功能相关变量
+        let currentStep = 1;
+        let currentScript = null;
+        let currentImageUrls = [];
+        let currentJobId = null;
+        let progressInterval = null;
+
+        function generateScript() {
+            if (!isAuthenticated) {
+                showAuthError('请先进行身份验证');
+                showAuthOverlay();
+                return;
+            }
+            
+            const inputText = document.getElementById('inputText').value.trim();
+            if (!inputText) {
+                alert('请输入文本内容');
+                return;
+            }
+
+            // 显示脚本生成进度
+            showScriptProgress('正在分析文本内容...', 10);
+            document.getElementById('generateScriptBtn').disabled = true;
+
+            // 模拟进度更新
+            const progressInterval = setInterval(() => {
+                const currentProgress = parseInt(document.getElementById('scriptProgressBar').style.width) || 0;
+                if (currentProgress < 80) {
+                    const newProgress = currentProgress + Math.random() * 20;
+                    showScriptProgress('正在生成脚本结构...', Math.min(newProgress, 80));
+                }
+            }, 500);
+
+            fetch('/video/generate-script', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: 'inputText=' + encodeURIComponent(inputText)
+            })
+            .then(response => response.json())
+            .then(data => {
+                clearInterval(progressInterval);
+                showScriptProgress('脚本生成完成！', 100);
+                setTimeout(() => {
+                    hideScriptProgress();
+                    document.getElementById('generateScriptBtn').disabled = false;
+                    if (data.success) {
+                        currentScript = data.script;
+                        showScriptEditor(currentScript);
+                        nextStep();
+                    } else {
+                        if (data.message && data.message.includes('未授权访问')) {
+                            // token失效，重新验证
+                            showAuthError('登录已过期，请重新验证');
+                            showAuthOverlay();
+                        } else {
+                            showError(data.message);
+                        }
+                    }
+                }, 500);
+            })
+            .catch(error => {
+                clearInterval(progressInterval);
+                hideScriptProgress();
+                document.getElementById('generateScriptBtn').disabled = false;
+                showError('请求失败: ' + error.message);
+            });
+        }
+
+        function showScriptEditor(script) {
+            let editorHtml = `
+                <div class="mb-3">
+                    <label class="form-label">视频标题</label>
+                    <input type="text" class="form-control" id="scriptTitle" value="${script.title}" 
+                           onchange="updateScriptTitle(this.value)">
+                </div>
+                <div id="scenesEditor">
+            `;
+            
+            script.scenes.forEach((scene, index) => {
+                editorHtml += `
+                    <div class="scene-editor" data-scene-index="${index}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">场景 ${index + 1}: ${scene.sceneName}</h6>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteScene(${index})" 
+                                    ${script.scenes.length <= 1 ? 'disabled' : ''}>
+                                <i class="fas fa-trash me-1"></i>删除场景
+                            </button>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">场景名称</label>
+                                <input type="text" class="form-control" value="${scene.sceneName}" 
+                                       onchange="updateScene(${index}, 'sceneName', this.value)">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">图片描述</label>
+                                <textarea class="form-control" rows="3" 
+                                          onchange="updateScene(${index}, 'imageDescription', this.value)">${scene.imageDescription}</textarea>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="form-label">文案内容</label>
+                            <textarea class="form-control" rows="2" 
+                                      onchange="updateScene(${index}, 'scriptText', this.value)">${scene.scriptText}</textarea>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            editorHtml += `
+                </div>
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-success" onclick="addNewScene()">
+                        <i class="fas fa-plus me-2"></i>添加新场景
+                    </button>
+                </div>
+            `;
+            document.getElementById('scriptEditor').innerHTML = editorHtml;
+        }
+
+        function updateScriptTitle(value) {
+            if (currentScript) {
+                currentScript.title = value;
+            }
+        }
+
+        function updateScene(index, field, value) {
+            if (currentScript && currentScript.scenes[index]) {
+                currentScript.scenes[index][field] = value;
+            }
+        }
+
+        function deleteScene(index) {
+            if (!currentScript || !currentScript.scenes[index]) {
+                return;
+            }
+            
+            // 确认删除
+            if (!confirm(`确定要删除场景 ${index + 1} 吗？此操作不可撤销。`)) {
+                return;
+            }
+            
+            // 删除场景
+            currentScript.scenes.splice(index, 1);
+            
+            // 重新渲染脚本编辑器
+            showScriptEditor(currentScript);
+        }
+
+        function addNewScene() {
+            if (!currentScript) {
+                return;
+            }
+            
+            // 添加新场景
+            const newScene = {
+                sceneName: `新场景 ${currentScript.scenes.length + 1}`,
+                imageDescription: '请描述这个场景需要的图片',
+                scriptText: '请输入这个场景的文案内容'
+            };
+            
+            currentScript.scenes.push(newScene);
+            
+            // 重新渲染脚本编辑器
+            showScriptEditor(currentScript);
+        }
+
+        function generateImages() {
+            if (!isAuthenticated) {
+                showAuthError('请先进行身份验证');
+                showAuthOverlay();
+                return;
+            }
+            
+            if (!currentScript) {
+                showError('没有可用的脚本');
+                return;
+            }
+
+            // 显示图片生成进度
+            showImageProgress('正在准备图片生成...', 10);
+            document.getElementById('generateImagesBtn').disabled = true;
+
+            // 模拟进度更新
+            const progressInterval = setInterval(() => {
+                const currentProgress = parseInt(document.getElementById('imageProgressBar').style.width) || 0;
+                if (currentProgress < 80) {
+                    const newProgress = currentProgress + Math.random() * 15;
+                    const progress = Math.min(newProgress, 80);
+                    let message = '正在生成图片...';
+                    if (progress > 30) message = '正在优化图片质量...';
+                    if (progress > 60) message = '正在处理图片细节...';
+                    showImageProgress(message, progress);
+                }
+            }, 800);
+
+            fetch('/video/generate-images', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: JSON.stringify(currentScript)
+            })
+            .then(response => response.json())
+            .then(data => {
+                clearInterval(progressInterval);
+                showImageProgress('图片生成完成！', 100);
+                setTimeout(() => {
+                    hideImageProgress();
+                    document.getElementById('generateImagesBtn').disabled = false;
+                    if (data.success) {
+                        currentImageUrls = data.imageUrls;
+                        showImagePreview(currentImageUrls);
+                        nextStep();
+                    } else {
+                        if (data.message && data.message.includes('未授权访问')) {
+                            // token失效，重新验证
+                            showAuthError('登录已过期，请重新验证');
+                            showAuthOverlay();
+                        } else {
+                            showError(data.message);
+                        }
+                    }
+                }, 500);
+            })
+            .catch(error => {
+                clearInterval(progressInterval);
+                hideImageProgress();
+                document.getElementById('generateImagesBtn').disabled = false;
+                showError('请求失败: ' + error.message);
+            });
+        }
+
+        function showImagePreview(imageUrls) {
+            let previewHtml = '';
+            imageUrls.forEach((url, index) => {
+                previewHtml += `
+                    <div class="image-item">
+                        <img src="${url}" alt="场景${index + 1}" class="image-preview">
+                        <p class="mt-2">场景 ${index + 1}</p>
+                    </div>
+                `;
+            });
+            document.getElementById('imagePreview').innerHTML = previewHtml;
+        }
+
+        function generateVideo() {
+            if (!isAuthenticated) {
+                showAuthError('请先进行身份验证');
+                showAuthOverlay();
+                return;
+            }
+            
+            if (!currentScript || currentImageUrls.length === 0) {
+                showError('缺少脚本或图片数据');
+                return;
+            }
+
+            // 更新脚本中的图片URL
+            currentScript.scenes.forEach((scene, index) => {
+                if (index < currentImageUrls.length) {
+                    scene.imageUrl = currentImageUrls[index];
+                }
+            });
+
+            showLoading('正在提交视频生成任务...');
+
+            fetch('/video/generate-video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: JSON.stringify(currentScript)
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    currentJobId = data.jobId;
+                    nextStep();
+                    startVideoProgress();
+                } else {
+                    if (data.message && data.message.includes('未授权访问')) {
+                        // token失效，重新验证
+                        showAuthError('登录已过期，请重新验证');
+                        showAuthOverlay();
+                    } else {
+                        showError(data.message);
+                    }
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('请求失败: ' + error.message);
+            });
+        }
+
+        function startVideoProgress() {
+            updateStatus('视频生成任务已提交，正在处理中...', 25);
+            progressInterval = setInterval(() => {
+                if (currentJobId) {
+                    checkVideoStatus();
+                }
+            }, 3000);
+        }
+
+        function checkVideoStatus() {
+            fetch(`/video/status/${currentJobId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + currentToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.status === 'Finished') {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                        updateStatus('视频生成完成！', 100);
+                        showVideoResult(data.videoUrl);
+                    } else if (data.status === 'Failed') {
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                        showError(data.errorMessage || '视频生成失败');
+                    } else {
+                        updateStatus('正在生成视频...', 75);
+                    }
+                } else {
+                    if (data.message && data.message.includes('未授权访问')) {
+                        // token失效，重新验证
+                        clearInterval(progressInterval);
+                        progressInterval = null;
+                        showAuthError('登录已过期，请重新验证');
+                        showAuthOverlay();
+                    } else {
+                        showError(data.message);
+                    }
+                }
+            })
+            .catch(error => {
+                showError('查询状态失败: ' + error.message);
+            });
+        }
+
+        function updateStatus(message, progress) {
+            document.getElementById('statusMessage').textContent = message;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function showVideoResult(videoUrl) {
+            document.getElementById('videoResult').style.display = 'block';
+            document.getElementById('videoPlayer').src = videoUrl;
+            document.getElementById('downloadLink').href = videoUrl;
+        }
+
+        function nextStep() {
+            if (currentStep < 4) {
+                document.getElementById(`step${currentStep}-content`).classList.remove('active');
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                document.getElementById(`step${currentStep}`).classList.add('completed');
+                
+                currentStep++;
+                
+                document.getElementById(`step${currentStep}-content`).classList.add('active');
+                document.getElementById(`step${currentStep}`).classList.add('active');
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                document.getElementById(`step${currentStep}-content`).classList.remove('active');
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                
+                currentStep--;
+                
+                document.getElementById(`step${currentStep}-content`).classList.add('active');
+                document.getElementById(`step${currentStep}`).classList.add('active');
+                document.getElementById(`step${currentStep}`).classList.remove('completed');
+            }
+        }
+
+        function restart() {
+            // 重置所有状态
+            currentStep = 1;
+            currentScript = null;
+            currentImageUrls = [];
+            currentJobId = null;
+            
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+            
+            // 重置步骤指示器
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`step${i}`).className = 'step';
+                document.getElementById(`step${i}-content`).classList.remove('active');
+            }
+            
+            // 显示第一步
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('step1-content').classList.add('active');
+            
+            // 隐藏其他内容
+            document.getElementById('videoResult').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('scriptProgress').style.display = 'none';
+            document.getElementById('imageProgress').style.display = 'none';
+            
+            // 重置按钮状态
+            document.getElementById('generateScriptBtn').disabled = false;
+            document.getElementById('generateImagesBtn').disabled = false;
+            
+            // 清空输入
+            document.getElementById('inputText').value = '';
+        }
+
+        function showScriptProgress(message, progress) {
+            document.getElementById('scriptProgress').style.display = 'block';
+            document.getElementById('scriptStatusMessage').textContent = message;
+            document.getElementById('scriptProgressBar').style.width = progress + '%';
+        }
+
+        function hideScriptProgress() {
+            document.getElementById('scriptProgress').style.display = 'none';
+            document.getElementById('scriptProgressBar').style.width = '0%';
+        }
+
+        function showImageProgress(message, progress) {
+            document.getElementById('imageProgress').style.display = 'block';
+            document.getElementById('imageStatusMessage').textContent = message;
+            document.getElementById('imageProgressBar').style.width = progress + '%';
+        }
+
+        function hideImageProgress() {
+            document.getElementById('imageProgress').style.display = 'none';
+            document.getElementById('imageProgressBar').style.width = '0%';
+        }
+
+        function showLoading(message) {
+            document.getElementById('statusMessage').textContent = message;
+            document.getElementById('progressBar').style.width = '50%';
+        }
+
+        function hideLoading() {
+            document.getElementById('progressBar').style.width = '0%';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('errorText').textContent = message;
+        }
+
+        // 页面卸载时清理轮询
+        window.addEventListener('beforeunload', function() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        });
+    </script>
+</body>
+</html> 

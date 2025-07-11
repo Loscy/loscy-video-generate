@@ -1,0 +1,8 @@
+# 阿里云OSS和百炼配置模板
+# 请复制此文件为 oss-config.properties 并填入你的配置信息
+
+# 百炼文生图配置
+# 获取地址: https://bailian.console.aliyun.com/
+bailian.apiKey=your_bailian_api_key_here
+bailian.endpoint=your_bailian_endpoint_here
+bailian.region=your_bailian_region_here 
