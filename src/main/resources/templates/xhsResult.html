@@ -418,6 +418,20 @@
             clonedElement.style.position = 'absolute';
             clonedElement.style.left = '-9999px';
             clonedElement.style.top = '-9999px';
+            
+            // 设置克隆元素为原始设计尺寸（600x800px）
+            clonedElement.style.width = '600px';
+            clonedElement.style.height = '800px';
+            clonedElement.style.transform = 'none'; // 移除任何缩放变换
+            
+            // 确保内部div也是原始尺寸
+            const innerDiv = clonedElement.querySelector('div');
+            if (innerDiv) {
+                innerDiv.style.width = '600px';
+                innerDiv.style.height = '800px';
+                innerDiv.style.transform = 'none';
+                innerDiv.style.transformOrigin = 'center center';
+            }
 
             // 处理所有图片，转换为base64
             const images = clonedElement.querySelectorAll('img');
@@ -475,11 +489,11 @@
                     html2canvas(clonedElement, {
                         useCORS: false, // 关闭CORS，因为我们已经转换为base64
                         allowTaint: false,
-                        scale: 2,
+                        scale: 2, // 保持2倍缩放以获得高清图片
                         backgroundColor: '#ffffff',
                         logging: false,
-                        width: clonedElement.offsetWidth,
-                        height: clonedElement.offsetHeight
+                        width: 600, // 固定宽度为600px
+                        height: 800  // 固定高度为800px
                     }).then(canvas => {
                         // 清理克隆元素
                         document.body.removeChild(clonedElement);
@@ -525,12 +539,38 @@
             
             contentPreviews.forEach((element, index) => {
                 setTimeout(() => {
-                    html2canvas(element, {
+                    // 创建克隆元素以确保原始尺寸
+                    const clonedElement = element.cloneNode(true);
+                    document.body.appendChild(clonedElement);
+                    clonedElement.style.position = 'absolute';
+                    clonedElement.style.left = '-9999px';
+                    clonedElement.style.top = '-9999px';
+                    
+                    // 设置克隆元素为原始设计尺寸（600x800px）
+                    clonedElement.style.width = '600px';
+                    clonedElement.style.height = '800px';
+                    clonedElement.style.transform = 'none';
+                    
+                    // 确保内部div也是原始尺寸
+                    const innerDiv = clonedElement.querySelector('div');
+                    if (innerDiv) {
+                        innerDiv.style.width = '600px';
+                        innerDiv.style.height = '800px';
+                        innerDiv.style.transform = 'none';
+                        innerDiv.style.transformOrigin = 'center center';
+                    }
+                    
+                    html2canvas(clonedElement, {
                         useCORS: true,
                         allowTaint: true,
                         scale: 2,
-                        backgroundColor: '#ffffff'
+                        backgroundColor: '#ffffff',
+                        width: 600,
+                        height: 800
                     }).then(canvas => {
+                        // 清理克隆元素
+                        document.body.removeChild(clonedElement);
+                        
                         const link = document.createElement('a');
                         link.download = `小红书内容图${index + 1}_${new Date().getTime()}.png`;
                         link.href = canvas.toDataURL('image/png');
@@ -544,6 +584,10 @@
                             hideLoading();
                         }
                     }).catch(error => {
+                        // 清理克隆元素
+                        if (clonedElement.parentNode) {
+                            document.body.removeChild(clonedElement);
+                        }
                         console.error('生成图片失败:', error);
                         downloadCount++;
                         if (downloadCount === totalCount) {

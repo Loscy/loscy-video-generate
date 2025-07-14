@@ -2,140 +2,44 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${mainTitle}</title>
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+        .clue-wrap {
+            background-color: #fff;
+            padding: 40px;
         }
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #f8f9fa;
-            min-height: 100vh;
+        .clue-title {
+            font-size: 78px;
+            line-height: 100px;
+            font-weight: 800;
+            border-bottom: 2px solid #000;
+            display: inline-block;
+            margin-bottom: 20px;
         }
-        .container {
-            width: 600px;
-            height: 850px;
-            background: #fff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-            position: relative;
-            padding: 0 48px 32px 48px;
-            display: flex;
-            flex-direction: column;
+        .clue-desc {
+            font-size: 32px;
+            margin-bottom: 40px;
         }
-        /* 飞机图标 */
-        .airplane-icon {
-            position: absolute;
-            top: 32px;
-            right: 48px;
-            width: 100px;
+        .clue-airplane-icon {
+            width: 130px;
             height: 100px;
-            opacity: 0.85;
-            z-index: 2;
         }
-        /* 标题区域 */
-        .title-section {
-            margin-top: 56px;
-            margin-bottom: 16px;
-            text-align: left;
-        }
-        .main-title {
-            font-size: 2.8rem;
-            font-weight: 900;
-            color: #111;
-            line-height: 1.18;
-            margin-bottom: 0.5rem;
-            letter-spacing: 1px;
-        }
-        .sub-title {
-            font-size: 2.4rem;
-            font-weight: 900;
-            color: #111;
-            line-height: 1.18;
-            margin-bottom: 0.5rem;
-            letter-spacing: 1px;
-        }
-        .divider {
+        .clue-ship-img {
             width: 100%;
-            height: 3px;
-            background: #111;
-            margin: 12px 0 18px 0;
-            border-radius: 2px;
-        }
-        /* 分点说明 */
-        .points {
-            text-align: center;
-            font-size: 1.25rem;
-            color: #222;
-            margin-bottom: 32px;
-            letter-spacing: 1px;
-        }
-        /* 主图区域 */
-        .image-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-        .cover-img {
-            width: 420px;
-            height: 280px;
-            border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+            aspect-ratio: 3/2;
             object-fit: cover;
-            background: #f0f0f0;
-        }
-        /* 底部署名 */
-        .signature {
-            text-align: left;
-            font-size: 1rem;
-            color: #888;
-            font-weight: 400;
-            margin-top: 18px;
-        }
-        /* 响应式 */
-        @media (max-width: 700px) {
-            .container {
-                width: 98vw;
-                height: auto;
-                padding: 0 8vw 24px 8vw;
-            }
-            .cover-img {
-                width: 90vw;
-                height: 32vw;
-                min-height: 120px;
-            }
+            border-radius: 16px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <!-- 飞机图标 -->
-    <img class="airplane-icon" src="/images/airplan.png" alt="airplane"/>
-
-    <!-- 标题区域 -->
-    <div class="title-section">
-        <div class="main-title">${mainTitle}</div>
-        <div class="divider"></div>
+<div class="clue-wrap">
+    <div class="clue-title">
+        <img class="clue-airplane-icon" src="/images/airplan.png" alt="airplane" align="right" />
+        ${mainTitle}
     </div>
-
-    <!-- 分点说明 -->
-    <div class="points">${points}</div>
-
-    <!-- 主图区域 -->
-    <div class="image-section">
-        <img class="cover-img" src="${url}" alt="${mainTitle}"/>
-    </div>
-
-    <!-- 底部署名 -->
-    <div class="signature">@跨境物流高手养成笔记</div>
+    <div class="clue-desc">${points}</div>
+    <img class="clue-ship-img" src="${url}" alt="${mainTitle}">
 </div>
 </body>
 </html>
