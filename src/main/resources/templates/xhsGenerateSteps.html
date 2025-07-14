@@ -95,6 +95,51 @@
             padding: 15px;
             margin: 10px 0;
             border-left: 4px solid #ff6b9d;
+            position: relative;
+        }
+        .key-point-editor {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e9ecef;
+        }
+        .key-point-editor:focus-within {
+            border-color: #ff6b9d;
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+        }
+        .key-point-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 5px;
+        }
+        .btn-add-point {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            margin: 10px 0;
+        }
+        .btn-add-point:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 10px rgba(40, 167, 69, 0.3);
+        }
+        .image-desc-editor {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid #e9ecef;
+        }
+        .image-desc-editor:focus-within {
+            border-color: #ff6b9d;
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
         }
         .step-indicator {
             display: flex;
@@ -248,18 +293,28 @@
 
             <!-- 脚本预览和编辑 -->
             <div id="scriptPreview" class="script-preview" style="display: none;">
-                <h4><i class="fas fa-file-alt me-2"></i>生成的文案内容 <small class="text-muted">(点击可编辑)</small></h4>
-                
+                <h4><i class="fas fa-file-alt me-2"></i>生成的文案内容 <small class="text-muted">(可直接编辑)</small></h4>
+
                 <div class="mb-3">
                     <label class="form-label fw-bold">标题:</label>
-                    <div class="editable-content" id="editableTitle" onclick="editContent('title')">
-                        <span id="titleContent"></span>
+                    <input type="text" class="form-control" id="titleInput" placeholder="请输入标题">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">图片描述:</label>
+                    <div class="image-desc-editor">
+                        <textarea class="form-control" id="imageDescInput" rows="3" placeholder="请输入图片描述，用于生成封面图片"></textarea>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold">核心要点:</label>
                     <div id="keyPointsList"></div>
+                    <div class="text-center">
+                        <button type="button" class="btn btn-add-point btn-sm" onclick="addKeyPoint()">
+                            <i class="fas fa-plus me-1"></i>添加要点
+                        </button>
+                    </div>
                 </div>
 
                 <div class="text-center mt-4">
@@ -396,26 +451,46 @@
 
         // 显示脚本预览
         function showScriptPreview(script) {
-            document.getElementById('titleContent').textContent = script.title;
+            // 填充标题
+            document.getElementById('titleInput').value = script.title;
 
+            // 填充图片描述
+            document.getElementById('imageDescInput').value = script.imageDescription || '';
+
+            // 填充核心要点
+            renderKeyPoints();
+
+            document.getElementById('scriptPreview').style.display = 'block';
+        }
+
+        // 渲染核心要点列表
+        function renderKeyPoints() {
             const keyPointsList = document.getElementById('keyPointsList');
             keyPointsList.innerHTML = '';
 
-            script.keyPoints.forEach((point, index) => {
+            currentScript.keyPoints.forEach((point, index) => {
                 const pointDiv = document.createElement('div');
-                pointDiv.className = 'key-point';
+                pointDiv.className = 'key-point-editor';
                 pointDiv.innerHTML = `
-                    <div class="editable-content" onclick="editKeyPoint(${index})">
-                        <strong>${index + 1}. ${point}</strong>
-                        <div class="mt-2 text-muted" style="font-size: 0.9em;">
-                            ${script.descriptions[index] || ''}
-                        </div>
+                    <div class="key-point-controls">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeKeyPoint(${index})" title="删除要点">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">要点 ${index + 1}:</label>
+                        <input type="text" class="form-control" value="${point}"
+                               onchange="updateKeyPoint(${index}, this.value)" placeholder="请输入核心要点">
+                    </div>
+                    <div>
+                        <label class="form-label fw-bold">详细描述:</label>
+                        <textarea class="form-control" rows="3"
+                                  onchange="updateKeyPointDescription(${index}, this.value)"
+                                  placeholder="请输入详细描述">${currentScript.descriptions[index] || ''}</textarea>
                     </div>
                 `;
                 keyPointsList.appendChild(pointDiv);
             });
-
-            document.getElementById('scriptPreview').style.display = 'block';
         }
 
         // 隐藏脚本预览
@@ -423,25 +498,46 @@
             document.getElementById('scriptPreview').style.display = 'none';
         }
 
-        // 编辑内容
-        function editContent(type) {
-            if (type === 'title') {
-                const titleElement = document.getElementById('titleContent');
-                const currentTitle = titleElement.textContent;
-                const newTitle = prompt('编辑标题:', currentTitle);
-                if (newTitle && newTitle.trim() !== '') {
-                    titleElement.textContent = newTitle.trim();
-                    currentScript.title = newTitle.trim();
-                }
-            }
+        // 更新核心要点
+        function updateKeyPoint(index, value) {
+            currentScript.keyPoints[index] = value;
         }
 
-        // 编辑核心要点
-        function editKeyPoint(index) {
-            const newPoint = prompt('编辑核心要点:', currentScript.keyPoints[index]);
-            if (newPoint && newPoint.trim() !== '') {
-                currentScript.keyPoints[index] = newPoint.trim();
-                showScriptPreview(currentScript);
+        // 更新核心要点描述
+        function updateKeyPointDescription(index, value) {
+            if (!currentScript.descriptions) {
+                currentScript.descriptions = [];
+            }
+            currentScript.descriptions[index] = value;
+        }
+
+        // 添加核心要点
+        function addKeyPoint() {
+            if (!currentScript.keyPoints) {
+                currentScript.keyPoints = [];
+            }
+            if (!currentScript.descriptions) {
+                currentScript.descriptions = [];
+            }
+
+            currentScript.keyPoints.push('新要点');
+            currentScript.descriptions.push('');
+            renderKeyPoints();
+        }
+
+        // 删除核心要点
+        function removeKeyPoint(index) {
+            if (currentScript.keyPoints.length <= 1) {
+                alert('至少需要保留一个核心要点');
+                return;
+            }
+
+            if (confirm('确定要删除这个要点吗？')) {
+                currentScript.keyPoints.splice(index, 1);
+                if (currentScript.descriptions) {
+                    currentScript.descriptions.splice(index, 1);
+                }
+                renderKeyPoints();
             }
         }
 
@@ -450,12 +546,33 @@
             generateScript();
         }
 
+        // 收集编辑后的数据
+        function collectEditedData() {
+            // 更新标题
+            const titleInput = document.getElementById('titleInput');
+            if (titleInput) {
+                currentScript.title = titleInput.value.trim();
+            }
+
+            // 更新图片描述
+            const imageDescInput = document.getElementById('imageDescInput');
+            if (imageDescInput) {
+                currentScript.imageDescription = imageDescInput.value.trim();
+            }
+
+            // 核心要点和描述已经通过onchange事件实时更新了
+            console.log('收集到的编辑数据:', currentScript);
+        }
+
         // 进入图片生成步骤
         function proceedToImages() {
             if (!currentScript) {
                 showError('没有可用的脚本');
                 return;
             }
+
+            // 收集编辑后的数据
+            collectEditedData();
 
             // 更新步骤指示器
             updateStepIndicator(2, 'active');

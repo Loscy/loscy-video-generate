@@ -159,7 +159,7 @@ public class XhsNoteService {
             response.setCoverImageHtml(coverImageHtml);
 
             // 2. 生成内容图片HTML（固定4张，每张对应一个核心点）
-            List<String> contentImageHtmls = generateContentImageHtmls(noteContent, 4);
+            List<String> contentImageHtmls = generateContentImageHtmls(noteContent, script.getKeyPoints().size());
             response.setContentImageHtmls(contentImageHtmls);
 
             // 3. 生成Markdown内容
@@ -389,13 +389,12 @@ public class XhsNoteService {
      */
     private List<String> generateContentImageHtmls(NoteContent noteContent, Integer imageCount) throws Exception {
         List<String> htmlContents = new ArrayList<>();
-        int count = imageCount != null ? imageCount : 4;
+        int count = imageCount != null ? imageCount : 0;
 
         // 读取HTML模板文件
         String templateContent = readTemplateFile("templates/xhsInfoTemplate.html");
 
-        // 确保生成4个HTML文件，每个对应一个核心点
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < count; i++) {
             String keyPoint = i < noteContent.getKeyPoints().size() ?
                 noteContent.getKeyPoints().get(i) : "核心要点" + (i + 1);
             String description = i < noteContent.getDescriptions().size() ?
