@@ -310,9 +310,15 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">核心要点:</label>
                     <div id="keyPointsList"></div>
-                    <div class="text-center">
-                        <button type="button" class="btn btn-add-point btn-sm" onclick="addKeyPoint()">
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-add-point btn-sm me-2" onclick="addKeyPoint()">
                             <i class="fas fa-plus me-1"></i>添加要点
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm me-2" onclick="resetKeyPoints()">
+                            <i class="fas fa-undo me-1"></i>重置要点
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="showKeyPointsCount()">
+                            <i class="fas fa-info-circle me-1"></i>当前 <span id="keyPointsCount">0</span> 个要点
                         </button>
                     </div>
                 </div>
@@ -468,6 +474,9 @@
             const keyPointsList = document.getElementById('keyPointsList');
             keyPointsList.innerHTML = '';
 
+            // 更新要点计数
+            updateKeyPointsCount();
+
             currentScript.keyPoints.forEach((point, index) => {
                 const pointDiv = document.createElement('div');
                 pointDiv.className = 'key-point-editor';
@@ -482,11 +491,16 @@
                         <input type="text" class="form-control" value="${point}"
                                onchange="updateKeyPoint(${index}, this.value)" placeholder="请输入核心要点">
                     </div>
-                    <div>
+                    <div class="mb-3">
                         <label class="form-label fw-bold">详细描述:</label>
                         <textarea class="form-control" rows="3"
                                   onchange="updateKeyPointDescription(${index}, this.value)"
                                   placeholder="请输入详细描述">${currentScript.descriptions[index] || ''}</textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeKeyPoint(${index})">
+                            <i class="fas fa-trash me-1"></i>删除此要点
+                        </button>
                     </div>
                 `;
                 keyPointsList.appendChild(pointDiv);
@@ -528,17 +542,78 @@
         // 删除核心要点
         function removeKeyPoint(index) {
             if (currentScript.keyPoints.length <= 1) {
-                alert('至少需要保留一个核心要点');
+                showError('至少需要保留一个核心要点');
                 return;
             }
 
-            if (confirm('确定要删除这个要点吗？')) {
+            const pointTitle = currentScript.keyPoints[index];
+            const confirmMessage = `确定要删除要点 "${pointTitle}" 吗？\n删除后将无法恢复。`;
+
+            if (confirm(confirmMessage)) {
                 currentScript.keyPoints.splice(index, 1);
                 if (currentScript.descriptions) {
                     currentScript.descriptions.splice(index, 1);
                 }
                 renderKeyPoints();
+
+                // 显示删除成功提示
+                showSuccessMessage(`要点 "${pointTitle}" 已删除`);
             }
+        }
+
+        // 显示成功消息（临时）
+        function showSuccessMessage(message) {
+            const existingAlert = document.querySelector('.alert-success-temp');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-success-temp';
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            alertDiv.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>${message}
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            // 3秒后自动消失
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+
+        // 更新要点计数
+        function updateKeyPointsCount() {
+            const countElement = document.getElementById('keyPointsCount');
+            if (countElement && currentScript && currentScript.keyPoints) {
+                countElement.textContent = currentScript.keyPoints.length;
+            }
+        }
+
+        // 重置要点到默认状态
+        function resetKeyPoints() {
+            if (confirm('确定要重置所有要点吗？这将清除所有自定义内容。')) {
+                currentScript.keyPoints = ['新要点1', '新要点2', '新要点3', '新要点4'];
+                currentScript.descriptions = ['', '', '', ''];
+                renderKeyPoints();
+                showSuccessMessage('要点已重置为默认状态');
+            }
+        }
+
+        // 显示要点统计信息
+        function showKeyPointsCount() {
+            const count = currentScript.keyPoints ? currentScript.keyPoints.length : 0;
+            const filledCount = currentScript.descriptions ?
+                currentScript.descriptions.filter(desc => desc && desc.trim() !== '').length : 0;
+
+            alert(`要点统计信息：\n总要点数：${count}\n已填写描述：${filledCount}\n未填写描述：${count - filledCount}`);
         }
 
         // 重新生成脚本
