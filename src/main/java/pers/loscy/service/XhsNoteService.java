@@ -600,6 +600,65 @@ public class XhsNoteService {
     }
 
     /**
+     * 重新生成封面图
+     */
+    public String regenerateCoverImage(String taskId) throws Exception {
+        // 获取现有任务数据
+        XhsNoteResponse existingData = taskDataMap.get(taskId);
+        if (existingData == null) {
+            throw new RuntimeException("任务数据不存在或已过期");
+        }
+
+        // 创建NoteContent对象
+        NoteContent noteContent = new NoteContent();
+        noteContent.setTitle(existingData.getTitle());
+        noteContent.setKeyPoints(existingData.getKeyPoints());
+
+        // 从现有数据中获取描述信息，如果没有则使用默认描述
+        List<String> descriptions = new ArrayList<>();
+        if (existingData.getKeyPoints() != null && !existingData.getKeyPoints().isEmpty()) {
+            for (String keyPoint : existingData.getKeyPoints()) {
+                descriptions.add(keyPoint + " - 让我们一起来看看吧！");
+            }
+        }
+        noteContent.setDescriptions(descriptions);
+
+        // 生成图片描述（基于标题和要点）
+        String imageDescription = generateImageDescription(existingData.getTitle(), existingData.getKeyPoints());
+        noteContent.setImageDescription(imageDescription);
+
+        // 重新生成主图片
+        String newMainImageUrl = generateMainImage(imageDescription);
+
+        // 生成新的封面图HTML
+        String newCoverImageHtml = generateCoverImageHtml(noteContent, newMainImageUrl);
+
+        // 更新任务数据中的封面图HTML
+        existingData.setCoverImageHtml(newCoverImageHtml);
+        taskDataMap.put(taskId, existingData);
+
+        log.info("封面图重新生成完成，任务ID: {}, 标题: {}", taskId, existingData.getTitle());
+
+        return newCoverImageHtml;
+    }
+
+    /**
+     * 生成图片描述
+     */
+    private String generateImageDescription(String title, List<String> keyPoints) {
+        StringBuilder description = new StringBuilder();
+        description.append("根据标题'").append(title).append("'");
+
+        if (keyPoints != null && !keyPoints.isEmpty()) {
+            description.append("和要点：").append(String.join("、", keyPoints));
+        }
+
+        description.append("，生成一张现代简约风格的配图，色彩鲜明，适合小红书笔记使用");
+
+        return description.toString();
+    }
+
+    /**
      * 生成笔记包（ZIP文件）
      */
     public byte[] generateNotePackage(String taskId) throws Exception {

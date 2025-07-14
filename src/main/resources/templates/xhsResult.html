@@ -358,8 +358,11 @@
                             <div th:utext="${noteData.coverImageHtml}"></div>
                         </div>
                         <div class="text-center mt-3">
-                            <button class="btn btn-success" onclick="downloadSingleImage('coverPreview', '封面图')">
+                            <button class="btn btn-success me-2" onclick="downloadSingleImage('coverPreview', '封面图')">
                                 <i class="fas fa-download me-2"></i>下载封面图
+                            </button>
+                            <button class="btn btn-primary" onclick="regenerateCoverImage()">
+                                <i class="fas fa-sync-alt me-2"></i>重新生成封面图
                             </button>
                         </div>
                     </div>
@@ -618,6 +621,82 @@
                     alert('复制失败，请手动选择文本复制');
                 }
             }
+        }
+
+        // 重新生成封面图
+        function regenerateCoverImage() {
+            // 获取当前页面的taskId
+            const pathParts = window.location.pathname.split('/');
+            const taskId = pathParts[pathParts.length - 1];
+
+            if (!taskId) {
+                alert('无法获取任务ID');
+                return;
+            }
+
+            // 显示加载状态
+            showLoading();
+
+            // 更新加载提示文本
+            const loadingContent = document.querySelector('.loading-content h5');
+            const originalLoadingText = loadingContent.textContent;
+            loadingContent.textContent = '正在重新生成封面图...';
+
+            // 调用后端接口
+            fetch('/xhs/regenerate-cover/' + taskId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                loadingContent.textContent = originalLoadingText;
+
+                if (data.success) {
+                    // 更新封面图预览
+                    const coverPreview = document.getElementById('coverPreview');
+                    if (coverPreview) {
+                        const previewDiv = coverPreview.querySelector('div');
+                        if (previewDiv) {
+                            previewDiv.innerHTML = data.coverImageHtml;
+                        }
+                    }
+
+                    // 显示成功提示
+                    showSuccessMessage('封面图重新生成成功！');
+                } else {
+                    alert('重新生成封面图失败: ' + (data.message || '未知错误'));
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                loadingContent.textContent = originalLoadingText;
+                console.error('重新生成封面图失败:', error);
+                alert('重新生成封面图失败，请重试');
+            });
+        }
+
+        // 显示成功消息
+        function showSuccessMessage(message) {
+            // 创建成功提示元素
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            successAlert.style.cssText = 'top: 100px; right: 20px; z-index: 10000; min-width: 300px;';
+            successAlert.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(successAlert);
+
+            // 3秒后自动移除
+            setTimeout(() => {
+                if (successAlert.parentNode) {
+                    successAlert.parentNode.removeChild(successAlert);
+                }
+            }, 3000);
         }
     </script>
 </body>

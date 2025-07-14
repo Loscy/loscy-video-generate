@@ -166,6 +166,29 @@ public class XhsController {
     }
 
     /**
+     * 重新生成封面图
+     */
+    @PostMapping("/regenerate-cover/{taskId}")
+    @ResponseBody
+    public Map<String, Object> regenerateCoverImage(@PathVariable String taskId) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            String newCoverImageHtml = xhsNoteService.regenerateCoverImage(taskId);
+
+            result.put("success", true);
+            result.put("coverImageHtml", newCoverImageHtml);
+            result.put("message", "封面图重新生成成功");
+
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "重新生成封面图失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
      * 测试结果页面布局
      */
     @GetMapping("/test-result")
