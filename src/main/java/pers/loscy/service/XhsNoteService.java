@@ -12,6 +12,7 @@ import org.thymeleaf.context.Context;
 import pers.loscy.deepseek.DeepSeekAi;
 import pers.loscy.model.XhsNoteRequest;
 import pers.loscy.model.XhsNoteResponse;
+import pers.loscy.model.XhsNoteScript;
 import pers.loscy.deepseek.DeepSeekConfig;
 import pers.loscy.image.ImageGenerate;
 import pers.loscy.AliUpload;
@@ -98,6 +99,84 @@ public class XhsNoteService {
         } catch (Exception e) {
             response.setSuccess(false);
             response.setMessage("生成失败: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * 步骤1: 生成小红书笔记脚本（仅生成文案内容）
+     */
+    public XhsNoteScript generateScript(XhsNoteRequest request) throws Exception {
+        try {
+            // 1. 使用DeepSeek总结用户输入内容
+            String summary = generateSummary(request.getContent());
+
+            // 2. 解析总结内容，提取标题和核心点
+            NoteContent noteContent = parseSummary(summary);
+
+            // 3. 创建脚本对象
+            XhsNoteScript script = new XhsNoteScript();
+            script.setTitle(noteContent.getTitle());
+            script.setKeyPoints(noteContent.getKeyPoints());
+            script.setDescriptions(noteContent.getDescriptions());
+            script.setImageDescription(noteContent.getImageDescription());
+            script.setOriginalContent(request.getContent());
+
+            log.info("小红书笔记脚本生成完成，标题: {}", noteContent.getTitle());
+
+            return script;
+
+        } catch (Exception e) {
+            log.error("生成小红书笔记脚本失败: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * 步骤2: 根据脚本生成图片和完整笔记
+     */
+    public XhsNoteResponse generateImages(XhsNoteScript script) throws Exception {
+        String taskId = UUID.randomUUID().toString();
+        XhsNoteResponse response = new XhsNoteResponse();
+        response.setTaskId(taskId);
+        response.setSuccess(true);
+
+        try {
+            // 设置基本信息
+            response.setTitle(script.getTitle());
+            response.setKeyPoints(script.getKeyPoints());
+
+            // 创建NoteContent对象用于图片生成
+            NoteContent noteContent = new NoteContent();
+            noteContent.setTitle(script.getTitle());
+            noteContent.setKeyPoints(script.getKeyPoints());
+            noteContent.setDescriptions(script.getDescriptions());
+            noteContent.setImageDescription(script.getImageDescription());
+
+            // 1. 生成封面图片HTML
+            String mainImageUrl = generateMainImage(noteContent.getImageDescription());
+            String coverImageHtml = generateCoverImageHtml(noteContent, mainImageUrl);
+            response.setCoverImageHtml(coverImageHtml);
+
+            // 2. 生成内容图片HTML（固定4张，每张对应一个核心点）
+            List<String> contentImageHtmls = generateContentImageHtmls(noteContent, 4);
+            response.setContentImageHtmls(contentImageHtmls);
+
+            // 3. 生成Markdown内容
+            String markdownContent = generateMarkdownContent(noteContent);
+            response.setMarkdownContent(markdownContent);
+
+            // 4. 保存任务数据
+            taskDataMap.put(taskId, response);
+
+            log.info("小红书笔记图片生成完成，任务ID: {}, 标题: {}", taskId, script.getTitle());
+
+            return response;
+
+        } catch (Exception e) {
+            response.setSuccess(false);
+            response.setMessage("生成图片失败: " + e.getMessage());
+            log.error("生成小红书笔记图片失败: {}", e.getMessage(), e);
             throw e;
         }
     }

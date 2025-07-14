@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import pers.loscy.service.XhsNoteService;
 import pers.loscy.model.XhsNoteRequest;
 import pers.loscy.model.XhsNoteResponse;
+import pers.loscy.model.XhsNoteScript;
 
 import java.util.*;
 import java.util.ArrayList;
@@ -60,6 +61,65 @@ public class XhsController {
         }
         
         return result;
+    }
+
+    /**
+     * 步骤1: 生成小红书笔记脚本
+     */
+    @PostMapping("/generate-script")
+    @ResponseBody
+    public Map<String, Object> generateScript(@RequestBody XhsNoteRequest request) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            XhsNoteScript script = xhsNoteService.generateScript(request);
+
+            result.put("success", true);
+            result.put("script", script);
+            result.put("message", "脚本生成成功");
+
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "脚本生成失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
+     * 步骤2: 根据脚本生成图片
+     */
+    @PostMapping("/generate-images")
+    @ResponseBody
+    public Map<String, Object> generateImages(@RequestBody XhsNoteScript script) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            XhsNoteResponse response = xhsNoteService.generateImages(script);
+
+            if (response.isSuccess()) {
+                result.put("success", true);
+                result.put("data", response);
+                result.put("taskId", response.getTaskId());
+                result.put("message", "图片生成成功");
+            } else {
+                result.put("success", false);
+                result.put("message", response.getMessage());
+            }
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "图片生成失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
+     * 显示分步生成页面
+     */
+    @GetMapping("/generate-steps")
+    public String showGenerateStepsPage() {
+        return "xhsGenerateSteps";
     }
 
     /**
