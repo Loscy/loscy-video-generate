@@ -397,7 +397,7 @@ public class XhsNoteService {
      * 生成单个核心点的描述
      */
     private String generateSingleKeyPointDesc(String keyPoint, int pointNumber) {
-        return "核心要点" + pointNumber + "：" + keyPoint + " - 深度解析与实用指南";
+        return "核心要点" + pointNumber + "：" + keyPoint;
     }
 
     /**
