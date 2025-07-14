@@ -547,7 +547,7 @@ public class CoreService {
         // 构建输入配置
         JSONObject inputConfig = new JSONObject();
         inputConfig.put("MediaGroupArray", mediaGroupArray);
-        inputConfig.put("TitleArray", Collections.singletonList(script.getTitle()));
+        inputConfig.put("TitleArray", Collections.singletonList("Shippergrid 跨境资讯"));
         inputConfig.put("BackgroundMusicArray", Collections.singletonList(
                 "https://loscyaivideo.oss-cn-shanghai.aliyuncs.com/M500001CqAt10mHS6V.mp3"
         ));
