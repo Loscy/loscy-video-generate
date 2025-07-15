@@ -397,6 +397,12 @@
                 </div>
             </div>
 
+            <!-- 成功信息 -->
+            <div id="successMessage" class="alert alert-success" style="display: none;">
+                <i class="fas fa-check-circle me-2"></i>
+                <span id="successText"></span>
+            </div>
+
             <!-- 错误信息 -->
             <div id="errorMessage" class="alert alert-danger" style="display: none;">
                 <i class="fas fa-exclamation-triangle me-2"></i>
@@ -1036,6 +1042,7 @@
             // 隐藏其他内容
             document.getElementById('videoResult').style.display = 'none';
             document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
             document.getElementById('scriptProgress').style.display = 'none';
             document.getElementById('imageProgress').style.display = 'none';
             
@@ -1081,6 +1088,19 @@
         function showError(message) {
             document.getElementById('errorMessage').style.display = 'block';
             document.getElementById('errorText').textContent = message;
+            // 隐藏成功消息
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            document.getElementById('successMessage').style.display = 'block';
+            document.getElementById('successText').textContent = message;
+            // 隐藏错误消息
+            document.getElementById('errorMessage').style.display = 'none';
+            // 3秒后自动隐藏成功消息
+            setTimeout(() => {
+                document.getElementById('successMessage').style.display = 'none';
+            }, 3000);
         }
 
         // 页面卸载时清理轮询
