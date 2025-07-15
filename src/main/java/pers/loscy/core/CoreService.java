@@ -570,6 +570,7 @@ public class CoreService {
         processConfig.put("AllowTransition", true);
         processConfig.put("TransitionList", Arrays.asList("bounce_up", "bounce_down"));
         processConfig.put("UseUniformTransition", false);
+        processConfig.put("ImageDuration", 60);
         JSONObject speechConfig = new JSONObject();
         speechConfig.put("SpeechRate", 130);
         speechConfig.put("Voice", "zhilun");
