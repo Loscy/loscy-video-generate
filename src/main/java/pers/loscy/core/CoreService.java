@@ -568,12 +568,16 @@ public class CoreService {
         JSONObject processConfig = new JSONObject();
         processConfig.put("AllowVfxEffect", false);
         processConfig.put("AllowTransition", true);
+        processConfig.put("TransitionList", Arrays.asList("bounce_up", "bounce_down"));
         processConfig.put("UseUniformTransition", false);
         JSONObject speechConfig = new JSONObject();
         speechConfig.put("SpeechRate", 130);
         speechConfig.put("Voice", "zhilun");
+        JSONObject titleConfig = new JSONObject();
+        titleConfig.put("FontSize", 85);
         editingConfig.put("SpeechConfig", speechConfig);
         editingConfig.put("ProcessConfig", processConfig);
+        editingConfig.put("TitleConfig", titleConfig);
 
         // 提交任务
         SubmitBatchMediaProducingJobRequest request = new SubmitBatchMediaProducingJobRequest();
