@@ -18,9 +18,19 @@ public class XhsNoteResponse {
     private String coverImageHtml;
     private List<String> contentImageHtmls;
     private String markdownContent;
+    private String imageDescription;
     
     public XhsNoteResponse() {}
-    
+
+    public String getImageDescription() {
+        return imageDescription;
+    }
+
+    public void setImageDescription(String imageDescription) {
+        this.imageDescription = imageDescription;
+    }
+
+
     public boolean isSuccess() {
         return success;
     }

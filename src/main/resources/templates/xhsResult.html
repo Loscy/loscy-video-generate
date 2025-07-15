@@ -250,6 +250,114 @@
         .nav-link:hover {
             color: #ff6b9d !important;
         }
+
+        /* 编辑弹窗样式 */
+        .edit-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .edit-modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .edit-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .edit-modal-header h4 {
+            margin: 0;
+            color: #333;
+        }
+
+        .edit-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-modal-close:hover {
+            color: #ff6b9d;
+        }
+
+        .edit-modal-body textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .edit-modal-body textarea:focus {
+            border-color: #ff6b9d;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+        }
+
+        .edit-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .edit-modal-tips {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .edit-modal-tips h6 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .edit-modal-tips ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .edit-modal-tips li {
+            margin-bottom: 3px;
+        }
     </style>
 </head>
 <body>
@@ -393,6 +501,40 @@
             <div class="loading-spinner"></div>
             <h5>正在生成图片...</h5>
             <p class="text-muted">请稍候，这可能需要几秒钟</p>
+        </div>
+    </div>
+
+    <!-- 编辑图片描述弹窗 -->
+    <div id="editDescriptionModal" class="edit-modal">
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h4><i class="fas fa-edit me-2"></i>编辑图片描述</h4>
+                <button class="edit-modal-close" onclick="closeEditModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="edit-modal-body">
+                <div class="edit-modal-tips">
+                    <h6><i class="fas fa-lightbulb me-1"></i>编辑提示：</h6>
+                    <ul>
+                        <li>描述要具体明确，包含风格、色彩、元素等信息</li>
+                        <li>可以指定图片风格：现代简约、卡通可爱、商务专业等</li>
+                        <li>可以指定色彩搭配：暖色调、冷色调、渐变色等</li>
+                        <li>可以添加具体元素：图标、装饰、背景等</li>
+                    </ul>
+                </div>
+                <label for="imageDescriptionInput" class="form-label fw-bold">图片描述：</label>
+                <textarea id="imageDescriptionInput" class="form-control"
+                          placeholder="请输入图片描述，例如：生成一张现代简约风格的配图，使用渐变蓝色背景，包含科技感图标元素..."></textarea>
+            </div>
+            <div class="edit-modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">
+                    <i class="fas fa-times me-2"></i>取消
+                </button>
+                <button class="btn btn-primary" onclick="submitRegenerateCover()">
+                    <i class="fas fa-magic me-2"></i>重新生成
+                </button>
+            </div>
         </div>
     </div>
 
@@ -667,7 +809,7 @@
             }
         }
 
-        // 重新生成封面图
+        // 重新生成封面图 - 显示编辑弹窗
         function regenerateCoverImage() {
             // 获取当前页面的taskId
             const pathParts = window.location.pathname.split('/');
@@ -677,6 +819,62 @@
                 alert('无法获取任务ID');
                 return;
             }
+
+            // 显示加载状态获取当前描述
+            showLoading();
+
+            // 获取当前图片描述
+            fetch('/xhs/get-cover-description/' + taskId)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+
+                if (data.success) {
+                    // 填充当前描述到输入框
+                    document.getElementById('imageDescriptionInput').value = data.imageDescription;
+
+                    // 显示编辑弹窗
+                    showEditModal();
+                } else {
+                    alert('获取图片描述失败: ' + (data.message || '未知错误'));
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('获取图片描述失败:', error);
+                alert('获取图片描述失败，请重试');
+            });
+        }
+
+        // 显示编辑弹窗
+        function showEditModal() {
+            document.getElementById('editDescriptionModal').style.display = 'flex';
+            // 聚焦到文本框
+            setTimeout(() => {
+                document.getElementById('imageDescriptionInput').focus();
+            }, 100);
+        }
+
+        // 关闭编辑弹窗
+        function closeEditModal() {
+            document.getElementById('editDescriptionModal').style.display = 'none';
+        }
+
+        // 提交重新生成封面图
+        function submitRegenerateCover() {
+            const imageDescription = document.getElementById('imageDescriptionInput').value.trim();
+
+            if (!imageDescription) {
+                alert('请输入图片描述');
+                return;
+            }
+
+            // 获取当前页面的taskId
+            const pathParts = window.location.pathname.split('/');
+            const taskId = pathParts[pathParts.length - 1];
+
+            // 关闭弹窗
+            closeEditModal();
 
             // 显示加载状态
             showLoading();
@@ -692,6 +890,9 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({
+                    imageDescription: imageDescription
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -742,6 +943,26 @@
                 }
             }, 3000);
         }
+
+        // 键盘事件处理
+        document.addEventListener('keydown', function(event) {
+            const modal = document.getElementById('editDescriptionModal');
+            if (modal.style.display === 'flex') {
+                if (event.key === 'Escape') {
+                    closeEditModal();
+                } else if (event.key === 'Enter' && event.ctrlKey) {
+                    // Ctrl+Enter 提交
+                    submitRegenerateCover();
+                }
+            }
+        });
+
+        // 点击弹窗外部关闭
+        document.getElementById('editDescriptionModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeEditModal();
+            }
+        });
     </script>
 </body>
 </html>

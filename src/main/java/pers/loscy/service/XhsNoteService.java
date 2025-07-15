@@ -77,6 +77,7 @@ public class XhsNoteService {
 
             // 3. 生成封面图片HTML
             // 3.1 生成图片
+            response.setImageDescription(noteContent.getImageDescription());
             String mainImageUrl = generateMainImage(noteContent.getImageDescription());
             String coverImageHtml = generateCoverImageHtml(noteContent, mainImageUrl);
             response.setCoverImageHtml(coverImageHtml);
@@ -154,11 +155,12 @@ public class XhsNoteService {
             noteContent.setImageDescription(script.getImageDescription());
 
             // 1. 生成封面图片HTML
+            response.setImageDescription(noteContent.getImageDescription());
             String mainImageUrl = generateMainImage(noteContent.getImageDescription());
             String coverImageHtml = generateCoverImageHtml(noteContent, mainImageUrl);
             response.setCoverImageHtml(coverImageHtml);
 
-            // 2. 生成内容图片HTML（固定4张，每张对应一个核心点）
+            // 2. 生成内容图片HTML（每张对应一个核心点）
             List<String> contentImageHtmls = generateContentImageHtmls(noteContent, script.getKeyPoints().size());
             response.setContentImageHtmls(contentImageHtmls);
 
@@ -457,21 +459,6 @@ public class XhsNoteService {
     }
 
     /**
-     * 生成要点描述
-     */
-    private String generateKeyPointDesc(List<String> keyPoints, int currentIndex) {
-        if (keyPoints == null || keyPoints.isEmpty()) {
-            return "精彩内容分享";
-        }
-
-        if (currentIndex < keyPoints.size()) {
-            return keyPoints.get(currentIndex) + " - 让我们一起来看看吧！";
-        }
-
-        return "更多精彩内容等你发现！";
-    }
-
-    /**
      * 生成单个核心点的描述
      */
     private String generateSingleKeyPointDesc(String keyPoint, int pointNumber) {
@@ -526,32 +513,6 @@ public class XhsNoteService {
     }
 
     /**
-     * 动态生成sections HTML
-     */
-    private String generateDynamicSections(List<String> keyPoints, List<String> descriptions) {
-        if (keyPoints == null || keyPoints.isEmpty()) {
-            return "";
-        }
-
-        StringBuilder html = new StringBuilder();
-
-        for (int i = 0; i < keyPoints.size(); i++) {
-            String keyPoint = keyPoints.get(i);
-            String description = i < descriptions.size() ? descriptions.get(i) : keyPoint;
-
-            html.append("<div class=\"section\">")
-                .append("<div class=\"num\">").append(i + 1).append("</div>")
-                .append("<div class=\"section-content\">")
-                .append("<span class=\"section-title\">").append(keyPoint).append("</span>")
-                .append(description)
-                .append("</div>")
-                .append("</div>");
-        }
-
-        return html.toString();
-    }
-
-    /**
      * 生成结尾文本
      */
     private String generateEndingText(String keyPoint) {
@@ -600,13 +561,31 @@ public class XhsNoteService {
     }
 
     /**
-     * 重新生成封面图
+     * 获取封面图描述
      */
-    public String regenerateCoverImage(String taskId) throws Exception {
+    public String getCoverImageDescription(String taskId) throws Exception {
         // 获取现有任务数据
         XhsNoteResponse existingData = taskDataMap.get(taskId);
         if (existingData == null) {
             throw new RuntimeException("任务数据不存在或已过期");
+        }
+
+        return existingData.getImageDescription();
+    }
+
+    /**
+     * 重新生成封面图（支持自定义图片描述）
+     */
+    public String regenerateCoverImage(String taskId, String customImageDescription) throws Exception {
+        // 获取现有任务数据
+        XhsNoteResponse existingData = taskDataMap.get(taskId);
+        if (existingData == null) {
+            throw new RuntimeException("任务数据不存在或已过期");
+        }
+
+        // 使用自定义图片描述，如果为空则生成默认描述
+        if (customImageDescription == null || customImageDescription.trim().isEmpty()) {
+            throw new Exception("图片描述不能为空");
         }
 
         // 创建NoteContent对象
@@ -623,12 +602,10 @@ public class XhsNoteService {
         }
         noteContent.setDescriptions(descriptions);
 
-        // 生成图片描述（基于标题和要点）
-        String imageDescription = generateImageDescription(existingData.getTitle(), existingData.getKeyPoints());
-        noteContent.setImageDescription(imageDescription);
+        noteContent.setImageDescription(customImageDescription);
 
         // 重新生成主图片
-        String newMainImageUrl = generateMainImage(imageDescription);
+        String newMainImageUrl = generateMainImage(customImageDescription);
 
         // 生成新的封面图HTML
         String newCoverImageHtml = generateCoverImageHtml(noteContent, newMainImageUrl);
@@ -637,25 +614,9 @@ public class XhsNoteService {
         existingData.setCoverImageHtml(newCoverImageHtml);
         taskDataMap.put(taskId, existingData);
 
-        log.info("封面图重新生成完成，任务ID: {}, 标题: {}", taskId, existingData.getTitle());
+        log.info("封面图重新生成完成，任务ID: {}, 标题: {}, 图片描述: {}", taskId, existingData.getTitle(), customImageDescription);
 
         return newCoverImageHtml;
-    }
-
-    /**
-     * 生成图片描述
-     */
-    private String generateImageDescription(String title, List<String> keyPoints) {
-        StringBuilder description = new StringBuilder();
-        description.append("根据标题'").append(title).append("'");
-
-        if (keyPoints != null && !keyPoints.isEmpty()) {
-            description.append("和要点：").append(String.join("、", keyPoints));
-        }
-
-        description.append("，生成一张现代简约风格的配图，色彩鲜明，适合小红书笔记使用");
-
-        return description.toString();
     }
 
     /**

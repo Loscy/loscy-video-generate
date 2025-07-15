@@ -166,15 +166,38 @@ public class XhsController {
     }
 
     /**
+     * 获取当前封面图描述
+     */
+    @GetMapping("/get-cover-description/{taskId}")
+    @ResponseBody
+    public Map<String, Object> getCoverDescription(@PathVariable String taskId) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            String imageDescription = xhsNoteService.getCoverImageDescription(taskId);
+
+            result.put("success", true);
+            result.put("imageDescription", imageDescription);
+
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "获取图片描述失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
      * 重新生成封面图
      */
     @PostMapping("/regenerate-cover/{taskId}")
     @ResponseBody
-    public Map<String, Object> regenerateCoverImage(@PathVariable String taskId) {
+    public Map<String, Object> regenerateCoverImage(@PathVariable String taskId, @RequestBody Map<String, String> request) {
         Map<String, Object> result = new HashMap<>();
 
         try {
-            String newCoverImageHtml = xhsNoteService.regenerateCoverImage(taskId);
+            String imageDescription = request.get("imageDescription");
+            String newCoverImageHtml = xhsNoteService.regenerateCoverImage(taskId, imageDescription);
 
             result.put("success", true);
             result.put("coverImageHtml", newCoverImageHtml);
