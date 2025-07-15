@@ -3,9 +3,11 @@ package pers.loscy.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import pers.loscy.core.CoreService;
 import pers.loscy.core.CoreService.VideoGenerationResult;
 import pers.loscy.core.CoreService.VideoScript;
+import pers.loscy.AliUpload;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +23,9 @@ public class VideoController {
 
     @Autowired
     private CoreService coreService;
+
+    @Autowired
+    private AliUpload aliUpload;
 
     /**
      * 首页
@@ -295,4 +300,70 @@ public class VideoController {
         
         return result;
     }
-} 
+
+    /**
+     * 图片上传接口
+     */
+    @PostMapping("/upload-image")
+    @ResponseBody
+    public Map<String, Object> uploadImage(@RequestParam("file") MultipartFile file,
+                                          @RequestParam(value = "sceneIndex", required = false) Integer sceneIndex,
+                                          @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 验证token
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            result.put("success", false);
+            result.put("message", "未授权访问，请重新验证");
+            return result;
+        }
+
+        try {
+            // 验证文件
+            if (file.isEmpty()) {
+                result.put("success", false);
+                result.put("message", "上传文件为空");
+                return result;
+            }
+
+            // 验证文件大小 (限制为10MB)
+            long maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.getSize() > maxSize) {
+                result.put("success", false);
+                result.put("message", "文件大小超过限制，最大支持10MB");
+                return result;
+            }
+
+            // 构建对象名称
+            String objectName = null;
+            if (sceneIndex != null) {
+                objectName = "scene_" + sceneIndex + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            }
+
+            // 临时保存文件到本地
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String tempFileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String tempFilePath = tempDir + "/" + tempFileName;
+            file.transferTo(new java.io.File(tempFilePath));
+
+            // 上传文件
+            String imageUrl = aliUpload.uploadLocalFile(tempFilePath, objectName);
+
+            // 删除临时文件
+            new java.io.File(tempFilePath).delete();
+
+            result.put("success", true);
+            result.put("imageUrl", imageUrl);
+            result.put("message", "图片上传成功");
+            result.put("fileName", file.getOriginalFilename());
+            result.put("fileSize", file.getSize());
+
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "图片上传失败: " + e.getMessage());
+        }
+
+        return result;
+    }
+}

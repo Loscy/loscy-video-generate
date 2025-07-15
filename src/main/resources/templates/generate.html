@@ -170,6 +170,21 @@
         }
         .image-item {
             text-align: center;
+            position: relative;
+        }
+        .image-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .image-controls .btn-group-sm {
+            display: flex;
+            gap: 5px;
+        }
+        .image-controls .btn-sm {
+            font-size: 0.8rem;
+            padding: 4px 8px;
         }
         .auth-overlay {
             position: fixed;
@@ -745,12 +760,118 @@
             imageUrls.forEach((url, index) => {
                 previewHtml += `
                     <div class="image-item">
-                        <img src="${url}" alt="场景${index + 1}" class="image-preview">
-                        <p class="mt-2">场景 ${index + 1}</p>
+                        <img src="${url}" alt="场景${index + 1}" class="image-preview" id="image-${index}">
+                        <div class="image-controls mt-2">
+                            <p class="mb-2">场景 ${index + 1}</p>
+                            <div class="btn-group-sm">
+                                <input type="file" id="upload-${index}" accept="image/*,.gif" style="display: none;" onchange="uploadReplaceImage(${index}, this)">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('upload-${index}').click()">
+                                    <i class="fas fa-upload me-1"></i>替换图片
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
             document.getElementById('imagePreview').innerHTML = previewHtml;
+        }
+
+        function uploadReplaceImage(sceneIndex, fileInput) {
+            if (!isAuthenticated) {
+                showAuthError('请先进行身份验证');
+                showAuthOverlay();
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (!file) {
+                return;
+            }
+
+            // 验证文件类型
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('不支持的文件格式，请选择 JPG、PNG、GIF、BMP 或 WebP 格式的图片');
+                fileInput.value = '';
+                return;
+            }
+
+            // 验证文件大小 (10MB)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showError('文件大小超过限制，最大支持10MB');
+                fileInput.value = '';
+                return;
+            }
+
+            // 显示上传进度
+            const imageElement = document.getElementById(`image-${sceneIndex}`);
+            const originalSrc = imageElement.src;
+            imageElement.style.opacity = '0.5';
+
+            // 在图片上显示上传进度
+            const progressOverlay = document.createElement('div');
+            progressOverlay.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                z-index: 1000;
+            `;
+            progressOverlay.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 上传中...';
+            imageElement.parentElement.style.position = 'relative';
+            imageElement.parentElement.appendChild(progressOverlay);
+
+            // 创建FormData
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('sceneIndex', sceneIndex + 1);
+
+            // 上传文件
+            fetch('/video/upload-image', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 移除进度提示
+                progressOverlay.remove();
+                imageElement.style.opacity = '1';
+
+                if (data.success) {
+                    // 更新图片显示
+                    imageElement.src = data.imageUrl;
+                    // 更新当前图片URL数组
+                    currentImageUrls[sceneIndex] = data.imageUrl;
+                    showSuccess(`场景 ${sceneIndex + 1} 图片替换成功`);
+                } else {
+                    if (data.message && data.message.includes('未授权访问')) {
+                        showAuthError('登录已过期，请重新验证');
+                        showAuthOverlay();
+                    } else {
+                        showError(data.message || '图片上传失败');
+                    }
+                    // 恢复原图片
+                    imageElement.src = originalSrc;
+                }
+            })
+            .catch(error => {
+                // 移除进度提示
+                progressOverlay.remove();
+                imageElement.style.opacity = '1';
+                imageElement.src = originalSrc;
+                showError('上传失败: ' + error.message);
+            });
+
+            // 清空文件输入
+            fileInput.value = '';
         }
 
         function generateVideo() {
