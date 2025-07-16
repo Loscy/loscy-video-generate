@@ -29,6 +29,73 @@ public class XhsController {
     private XhsNoteService xhsNoteService;
 
     /**
+     * 验证访问密钥API
+     */
+    @PostMapping("/verify-access")
+    @ResponseBody
+    public Map<String, Object> verifyAccess(@RequestParam String accessKey) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 写死的验证密钥（与VideoController保持一致）
+        final String VALID_ACCESS_KEY = "loscy";
+        
+        if (VALID_ACCESS_KEY.equals(accessKey)) {
+            // 生成token
+            String token = generateToken();
+            result.put("success", true);
+            result.put("message", "验证成功");
+            result.put("token", token);
+        } else {
+            result.put("success", false);
+            result.put("message", "访问密钥错误");
+        }
+        
+        return result;
+    }
+    
+    /**
+     * 生成访问token
+     */
+    private String generateToken() {
+        // 生成一个基于时间戳和随机数的token
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String random = String.valueOf(new java.util.Random().nextInt(1000000));
+        String token = timestamp + "_" + random + "_" + "loscy";
+        
+        // 将token存储到内存中（实际项目中应该使用Redis等缓存）
+        TokenManager.addToken(token);
+        
+        return token;
+    }
+    
+    /**
+     * 验证token
+     */
+    private boolean validateToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+        return TokenManager.isValidToken(token);
+    }
+    
+    /**
+     * 从Authorization头中提取token
+     */
+    private String extractTokenFromHeader(String authHeader) {
+        if (authHeader == null || authHeader.trim().isEmpty()) {
+            return null;
+        }
+        
+        // 支持Bearer token格式
+        if (authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        
+        // 也支持直接传递token
+        return authHeader;
+    }
+
+    /**
      * 显示小红书笔记生成页面
      */
     @GetMapping("/generate")
@@ -41,8 +108,17 @@ public class XhsController {
      */
     @PostMapping("/generate")
     @ResponseBody
-    public Map<String, Object> generateNote(@RequestBody XhsNoteRequest request) {
+    public Map<String, Object> generateNote(@RequestBody XhsNoteRequest request,
+                                           @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Map<String, Object> result = new HashMap<>();
+        
+        // 验证token
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            result.put("success", false);
+            result.put("message", "未授权访问，请重新验证");
+            return result;
+        }
         
         try {
             XhsNoteResponse response = xhsNoteService.generateNote(request);
@@ -68,8 +144,17 @@ public class XhsController {
      */
     @PostMapping("/generate-script")
     @ResponseBody
-    public Map<String, Object> generateScript(@RequestBody XhsNoteRequest request) {
+    public Map<String, Object> generateScript(@RequestBody XhsNoteRequest request,
+                                             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Map<String, Object> result = new HashMap<>();
+
+        // 验证token
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            result.put("success", false);
+            result.put("message", "未授权访问，请重新验证");
+            return result;
+        }
 
         try {
             XhsNoteScript script = xhsNoteService.generateScript(request);
@@ -91,8 +176,17 @@ public class XhsController {
      */
     @PostMapping("/generate-images")
     @ResponseBody
-    public Map<String, Object> generateImages(@RequestBody XhsNoteScript script) {
+    public Map<String, Object> generateImages(@RequestBody XhsNoteScript script,
+                                             @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Map<String, Object> result = new HashMap<>();
+
+        // 验证token
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            result.put("success", false);
+            result.put("message", "未授权访问，请重新验证");
+            return result;
+        }
 
         try {
             XhsNoteResponse response = xhsNoteService.generateImages(script);
@@ -170,8 +264,17 @@ public class XhsController {
      */
     @GetMapping("/get-cover-description/{taskId}")
     @ResponseBody
-    public Map<String, Object> getCoverDescription(@PathVariable String taskId) {
+    public Map<String, Object> getCoverDescription(@PathVariable String taskId,
+                                                  @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Map<String, Object> result = new HashMap<>();
+
+        // 验证token
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            result.put("success", false);
+            result.put("message", "未授权访问，请重新验证");
+            return result;
+        }
 
         try {
             String imageDescription = xhsNoteService.getCoverImageDescription(taskId);
@@ -192,8 +295,17 @@ public class XhsController {
      */
     @PostMapping("/regenerate-cover/{taskId}")
     @ResponseBody
-    public Map<String, Object> regenerateCoverImage(@PathVariable String taskId, @RequestBody Map<String, String> request) {
+    public Map<String, Object> regenerateCoverImage(@PathVariable String taskId, @RequestBody Map<String, String> request,
+                                                   @RequestHeader(value = "Authorization", required = false) String authHeader) {
         Map<String, Object> result = new HashMap<>();
+
+        // 验证token
+        String token = extractTokenFromHeader(authHeader);
+        if (!validateToken(token)) {
+            result.put("success", false);
+            result.put("message", "未授权访问，请重新验证");
+            return result;
+        }
 
         try {
             String imageDescription = request.get("imageDescription");
