@@ -556,7 +556,7 @@ public class CoreService {
         // 构建输出配置
         JSONObject outputConfig = new JSONObject();
         String mediaUrl = "http://" + BUCKET + ".oss-" + REGION_ID + ".aliyuncs.com/ice_output/" +
-                System.currentTimeMillis() + script.getTitle() + "_{index}.mp4";
+                System.currentTimeMillis() + "_{index}.mp4";
 
         outputConfig.put("MediaURL", mediaUrl);
         outputConfig.put("Count", 1);
