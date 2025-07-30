@@ -30,10 +30,14 @@ public class DeepSeekConfig {
             Properties properties = new Properties();
             properties.load(input);
             
-            apiKey = properties.getProperty("deepseek.api.key");
+            apiKey = System.getenv("DEEPSEEK_API_KEY");
             if (apiKey == null || apiKey.trim().isEmpty()) {
-                throw new RuntimeException("配置文件中缺少 deepseek.api.key");
+                apiKey = properties.getProperty("deepseek.api.key");
             }
+            if (apiKey == null || apiKey.trim().isEmpty() || apiKey.trim().startsWith("your_")) {
+                throw new RuntimeException("配置文件中缺少 deepseek.api.key 或环境变量 DEEPSEEK_API_KEY");
+            }
+            apiKey = apiKey.trim();
             
         } catch (IOException e) {
             throw new RuntimeException("加载配置文件失败", e);
@@ -46,4 +50,4 @@ public class DeepSeekConfig {
     public static String getApiKey() {
         return apiKey;
     }
-} 
+}

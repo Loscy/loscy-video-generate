@@ -1,8 +1,23 @@
 # 阿里云OSS和百炼配置模板
 # 请复制此文件为 oss-config.properties 并填入你的配置信息
 
+# 阿里云OSS配置
+oss.endpoint=https://oss-cn-shanghai.aliyuncs.com
+oss.regionId=cn-shanghai
+oss.accessKeyId=your_oss_access_key_id_here
+oss.accessKeySecret=your_oss_access_key_secret_here
+oss.bucketName=your_oss_bucket_name_here
+
+# 上传配置
+oss.upload.path=uploads/
+oss.upload.overwrite=false
+oss.upload.public-read=true
+
+# 阿里云ICE配置
+ice.endpoint=ice.cn-shanghai.aliyuncs.com
+
 # 百炼文生图配置
 # 获取地址: https://bailian.console.aliyun.com/
+bailian.endpoint=https://bailian.cn-hangzhou.aliyuncs.com
 bailian.apiKey=your_bailian_api_key_here
-bailian.endpoint=your_bailian_endpoint_here
-bailian.region=your_bailian_region_here 
+bailian.region=cn-hangzhou

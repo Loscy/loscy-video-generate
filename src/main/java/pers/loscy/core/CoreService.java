@@ -13,6 +13,7 @@ import pers.loscy.deepseek.DeepSeekAi;
 import pers.loscy.image.ImageGenerate;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -29,8 +30,11 @@ public class CoreService {
     
     private static final Logger logger = LoggerFactory.getLogger(CoreService.class);
 
-    private static final String REGION_ID = "cn-shanghai";
-    private static final String BUCKET = "loscyaivideo";
+    private static final String CONFIG_FILE = "oss-config.properties";
+    private static final String DEFAULT_REGION_ID = "cn-shanghai";
+    private static final String DEFAULT_ICE_ENDPOINT = "ice." + DEFAULT_REGION_ID + ".aliyuncs.com";
+    private String regionId = DEFAULT_REGION_ID;
+    private String bucketName;
     private Client iceClient;
     
     // 服务实例
@@ -156,16 +160,59 @@ public class CoreService {
      * 初始化ICE客户端
      */
     private void initIceClient() throws Exception {
+        Properties ossConfig = loadOssConfig();
+        String accessKeyId = getConfigValue(ossConfig, "oss.accessKeyId", "OSS_ACCESS_KEY_ID", null);
+        String accessKeySecret = getConfigValue(ossConfig, "oss.accessKeySecret", "OSS_ACCESS_KEY_SECRET", null);
+        regionId = getConfigValue(ossConfig, "oss.regionId", "OSS_REGION_ID", DEFAULT_REGION_ID);
+        bucketName = getRequiredConfigValue(ossConfig, "oss.bucketName", "OSS_BUCKET_NAME");
+
         com.aliyun.credentials.Client credentialClient = new com.aliyun.credentials.Client();
 
         Config config = new Config();
         config.setCredential(credentialClient);
-        config.accessKeyId = "your_oss_access_key_id_here";
-        config.accessKeySecret = "your_oss_access_key_secret_here";
-        config.endpoint = "ice." + REGION_ID + ".aliyuncs.com";
-        config.regionId = REGION_ID;
+        if (isConfiguredSecret(accessKeyId) && isConfiguredSecret(accessKeySecret)) {
+            config.accessKeyId = accessKeyId;
+            config.accessKeySecret = accessKeySecret;
+        }
+        config.endpoint = getConfigValue(ossConfig, "ice.endpoint", "ICE_ENDPOINT", DEFAULT_ICE_ENDPOINT);
+        config.regionId = regionId;
 
         iceClient = new Client(config);
+    }
+
+    private Properties loadOssConfig() {
+        Properties config = new Properties();
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream(CONFIG_FILE)) {
+            if (input != null) {
+                config.load(input);
+            }
+            return config;
+        } catch (IOException e) {
+            throw new RuntimeException("加载OSS配置文件失败", e);
+        }
+    }
+
+    private String getRequiredConfigValue(Properties config, String propertyName, String envName) {
+        String value = getConfigValue(config, propertyName, envName, null);
+        if (!isConfiguredSecret(value)) {
+            throw new RuntimeException("缺少配置: " + propertyName + " 或环境变量 " + envName);
+        }
+        return value;
+    }
+
+    private String getConfigValue(Properties config, String propertyName, String envName, String defaultValue) {
+        String value = System.getenv(envName);
+        if (value == null || value.trim().isEmpty()) {
+            value = config.getProperty(propertyName);
+        }
+        if (value == null || value.trim().isEmpty()) {
+            value = defaultValue;
+        }
+        return value == null ? null : value.trim();
+    }
+
+    private boolean isConfiguredSecret(String value) {
+        return value != null && !value.trim().isEmpty() && !value.trim().startsWith("your_");
     }
     
     /**
@@ -555,7 +602,7 @@ public class CoreService {
 
         // 构建输出配置
         JSONObject outputConfig = new JSONObject();
-        String mediaUrl = "http://" + BUCKET + ".oss-" + REGION_ID + ".aliyuncs.com/ice_output/" +
+        String mediaUrl = "http://" + bucketName + ".oss-" + regionId + ".aliyuncs.com/ice_output/" +
                 System.currentTimeMillis() + "_{index}.mp4";
 
         outputConfig.put("MediaURL", mediaUrl);
@@ -574,6 +621,9 @@ public class CoreService {
         JSONObject speechConfig = new JSONObject();
         speechConfig.put("SpeechRate", 130);
         speechConfig.put("Voice", "zhilun");
+        JSONObject speechConfigAsrConfig = new JSONObject();
+        speechConfigAsrConfig.put("FontSize", 0);
+        speechConfig.put("AsrConfig", speechConfigAsrConfig.toString());
         JSONObject titleConfig = new JSONObject();
         titleConfig.put("FontSize", 85);
         editingConfig.put("SpeechConfig", speechConfig);
@@ -699,4 +749,4 @@ public class CoreService {
             logger.error("关闭服务时发生错误", e);
         }
     }
-} 
+}

@@ -47,11 +47,11 @@ public class ImageGenerate {
             }
             config.load(input);
 
-            apiKey = config.getProperty("bailian.apiKey");
-            endpoint = config.getProperty("bailian.endpoint");
-            region = config.getProperty("bailian.region");
+            apiKey = getConfigValue("bailian.apiKey", "BAILIAN_API_KEY");
+            endpoint = getConfigValue("bailian.endpoint", "BAILIAN_ENDPOINT");
+            region = getConfigValue("bailian.region", "BAILIAN_REGION");
 
-            if (apiKey == null || endpoint == null || region == null) {
+            if (!isConfigured(apiKey) || !isConfigured(endpoint) || !isConfigured(region)) {
                 throw new RuntimeException("百炼配置信息不完整");
             }
 
@@ -59,6 +59,18 @@ public class ImageGenerate {
         } catch (IOException e) {
             throw new RuntimeException("加载配置文件失败", e);
         }
+    }
+
+    private String getConfigValue(String propertyName, String envName) {
+        String value = System.getenv(envName);
+        if (value == null || value.trim().isEmpty()) {
+            value = config.getProperty(propertyName);
+        }
+        return value == null ? null : value.trim();
+    }
+
+    private boolean isConfigured(String value) {
+        return value != null && !value.trim().isEmpty() && !value.trim().startsWith("your_");
     }
 
     /**

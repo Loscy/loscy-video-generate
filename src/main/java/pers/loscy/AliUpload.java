@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.Properties;
 
 /**
  * 阿里云OSS上传工具类
@@ -19,15 +21,50 @@ public class AliUpload {
     
     private static final Logger logger = LoggerFactory.getLogger(AliUpload.class);
     
-    private static final String ENDPOINT = "https://oss-cn-shanghai.aliyuncs.com";
-    private static final String ACCESS_KEY_ID = "your_oss_access_key_id_here";
-    private static final String ACCESS_KEY_SECRET = "your_oss_access_key_secret_here";
-    private static final String BUCKET_NAME = "loscyaivideo";
+    private static final String CONFIG_FILE = "oss-config.properties";
+    private static final String DEFAULT_ENDPOINT = "https://oss-cn-shanghai.aliyuncs.com";
     
     private OSS ossClient;
+    private String bucketName;
     
     public AliUpload() {
-        ossClient = new OSSClientBuilder().build(ENDPOINT, ACCESS_KEY_ID, ACCESS_KEY_SECRET);
+        Properties config = loadConfig();
+        String endpoint = getConfigValue(config, "oss.endpoint", "OSS_ENDPOINT", DEFAULT_ENDPOINT);
+        String accessKeyId = getRequiredConfigValue(config, "oss.accessKeyId", "OSS_ACCESS_KEY_ID");
+        String accessKeySecret = getRequiredConfigValue(config, "oss.accessKeySecret", "OSS_ACCESS_KEY_SECRET");
+        bucketName = getRequiredConfigValue(config, "oss.bucketName", "OSS_BUCKET_NAME");
+        ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+    }
+
+    private Properties loadConfig() {
+        Properties config = new Properties();
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream(CONFIG_FILE)) {
+            if (input != null) {
+                config.load(input);
+            }
+            return config;
+        } catch (IOException e) {
+            throw new RuntimeException("加载OSS配置文件失败", e);
+        }
+    }
+
+    private String getRequiredConfigValue(Properties config, String propertyName, String envName) {
+        String value = getConfigValue(config, propertyName, envName, null);
+        if (value == null || value.trim().isEmpty() || value.startsWith("your_")) {
+            throw new RuntimeException("缺少配置: " + propertyName + " 或环境变量 " + envName);
+        }
+        return value;
+    }
+
+    private String getConfigValue(Properties config, String propertyName, String envName, String defaultValue) {
+        String value = System.getenv(envName);
+        if (value == null || value.trim().isEmpty()) {
+            value = config.getProperty(propertyName);
+        }
+        if (value == null || value.trim().isEmpty()) {
+            value = defaultValue;
+        }
+        return value == null ? null : value.trim();
     }
     
     /**
@@ -43,10 +80,10 @@ public class AliUpload {
                 throw new RuntimeException("文件不存在: " + localFilePath);
             }
             
-            PutObjectRequest putObjectRequest = new PutObjectRequest(BUCKET_NAME, objectName, file);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, file);
             PutObjectResult result = ossClient.putObject(putObjectRequest);
             
-            String url = "https://" + BUCKET_NAME + ".oss-cn-shanghai.aliyuncs.com/" + objectName;
+            String url = "https://" + bucketName + ".oss-cn-shanghai.aliyuncs.com/" + objectName;
             logger.info("文件上传成功: {}", url);
             return url;
             
@@ -69,10 +106,10 @@ public class AliUpload {
             }
             
             String objectName = "resources/" + System.currentTimeMillis() + "_" + resourcePath;
-            PutObjectRequest putObjectRequest = new PutObjectRequest(BUCKET_NAME, objectName, inputStream);
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, objectName, inputStream);
             PutObjectResult result = ossClient.putObject(putObjectRequest);
             
-            String url = "https://" + BUCKET_NAME + ".oss-cn-shanghai.aliyuncs.com/" + objectName;
+            String url = "https://" + bucketName + ".oss-cn-shanghai.aliyuncs.com/" + objectName;
             logger.info("资源文件上传成功: {}", url);
             return url;
             
@@ -90,4 +127,4 @@ public class AliUpload {
             ossClient.shutdown();
         }
     }
-} 
+}
